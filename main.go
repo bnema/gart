@@ -22,17 +22,17 @@ type model struct {
 func main() {
 	var rootCmd = &cobra.Command{
 		Use:   "gart",
-		Short: "Gart surveille vos fichiers de configuration et copie les changements dans un dossier cache",
+		Short: "Gart monitors your configuration files and copies changes to a cache folder",
 	}
 
 	var watchCmd = &cobra.Command{
 		Use:   "watch [folder] -n [name]",
-		Short: "Surveille un dossier de configuration",
+		Short: "Monitors a configuration folder",
 		Args:  cobra.ExactArgs(1),
 		Run:   watchFolder,
 	}
 
-	watchCmd.Flags().StringP("name", "n", "", "Nom de la configuration à surveiller")
+	watchCmd.Flags().StringP("name", "n", "", "Name of the configuration to monitor")
 
 	rootCmd.AddCommand(watchCmd)
 	rootCmd.Execute()
@@ -44,7 +44,7 @@ func watchFolder(cmd *cobra.Command, args []string) {
 
 	initialModel := model{
 		watchedFolder: folder,
-		cacheFolder:   "./cache", // Vous pourriez vouloir configurer ce chemin
+		cacheFolder:   "./cache", 
 		fileName:      name,
 		lastModified:  make(map[string]time.Time),
 	}
@@ -72,13 +72,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() string {
-	return fmt.Sprintf("Vous surveillez le dossier '%s' pour les fichiers '%s'", m.watchedFolder, m.fileName)
+	return fmt.Sprintf("You are monitoring the folder '%s' for files '%s'", m.watchedFolder, m.fileName)
 }
 
 func (m model) watchFiles() tea.Msg {
 	files, err := os.ReadDir(m.watchedFolder)
 	if err != nil {
-		log.Printf("Erreur lors de la lecture du dossier: %v", err)
+		log.Printf("Error reading the folder: %v", err)
 		return nil
 	}
 
@@ -88,7 +88,7 @@ func (m model) watchFiles() tea.Msg {
 			destPath := filepath.Join(m.cacheFolder, file.Name())
 			err := copyFile(filePath, destPath)
 			if err != nil {
-				log.Printf("Erreur lors de la copie du fichier: %v", err)
+				log.Printf("Error copying the file: %v", err)
 			} else {
 				m.lastModified[file.Name()] = time.Now()
 			}
@@ -104,7 +104,7 @@ func copyFile(src, dst string) error {
 	}
 
 	if !sourceFileStat.Mode().IsRegular() {
-		return fmt.Errorf("%s n'est pas un fichier standard", src)
+		return fmt.Errorf("%s is not a regular file", src)
 	}
 
 	source, err := os.Open(src)
