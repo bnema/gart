@@ -44,7 +44,7 @@ func watchFolder(cmd *cobra.Command, args []string) {
 
 	initialModel := model{
 		watchedFolder: folder,
-		cacheFolder:   "./cache", 
+		cacheFolder:   "./cache", // Should be configurable or use default system cache folder (can it be erased ?)
 		fileName:      name,
 		lastModified:  make(map[string]time.Time),
 	}
