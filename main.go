@@ -13,8 +13,8 @@ import (
 )
 
 type model struct {
-	watchedFolder string
-	cacheFolder   string
+	watchedDir string
+	cacheDir   string
 	fileName      string
 	lastModified  map[string]time.Time
 }
@@ -39,12 +39,12 @@ func main() {
 }
 
 func watchFolder(cmd *cobra.Command, args []string) {
-	folder := args[0]
+	directory := args[0]
 	name, _ := cmd.Flags().GetString("name")
 
 	initialModel := model{
-		watchedFolder: folder,
-		cacheFolder:   "./cache", // Should be configurable or use default system cache folder (can it be erased ?)
+		watchedDir:  directory,
+		cacheDir:   "./cache", // Should be configurable or use default system cache folder (can it be erased ?)
 		fileName:      name,
 		lastModified:  make(map[string]time.Time),
 	}
@@ -72,20 +72,20 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() string {
-	return fmt.Sprintf("You are monitoring the folder '%s' for files '%s'", m.watchedFolder, m.fileName)
+	return fmt.Sprintf("You are monitoring the folder '%s' for files '%s'", m.watchedDir, m.fileName)
 }
 
 func (m model) watchFiles() tea.Msg {
-	files, err := os.ReadDir(m.watchedFolder)
+	files, err := os.ReadDir(m.watchedDir)
 	if err != nil {
 		log.Printf("Error reading the folder: %v", err)
 		return nil
 	}
 
 	for _, file := range files {
-		filePath := filepath.Join(m.watchedFolder, file.Name())
+		filePath := filepath.Join(m.watchedDir, file.Name())
 		if fileChanged(filePath, m.lastModified[file.Name()]) {
-			destPath := filepath.Join(m.cacheFolder, file.Name())
+			destPath := filepath.Join(m.watchedDir, file.Name())
 			err := copyFile(filePath, destPath)
 			if err != nil {
 				log.Printf("Error copying the file: %v", err)
@@ -98,28 +98,37 @@ func (m model) watchFiles() tea.Msg {
 }
 
 func copyFile(src, dst string) error {
-	sourceFileStat, err := os.Stat(src)
+	sourceFileInfo, err := os.Stat(src)
 	if err != nil {
 		return err
 	}
 
-	if !sourceFileStat.Mode().IsRegular() {
-		return fmt.Errorf("%s is not a regular file", src)
-	}
+	if sourceFileInfo.IsDir() {
+		// Create the destination directory if it doesn't exist
+		err = os.MkdirAll(dst, sourceFileInfo.Mode())
+		if err != nil {
+			return err
+		}
+		// Optionally, you can call a function here to copy the contents of the directory recursively
+	} else if sourceFileInfo.Mode().IsRegular() {
+		source, err := os.Open(src)
+		if err != nil {
+			return err
+		}
+		defer source.Close()
 
-	source, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer source.Close()
+		destination, err := os.Create(dst)
+		if err != nil {
+			return err
+		}
+		defer destination.Close()
 
-	destination, err := os.Create(dst)
-	if err != nil {
+		_, err = io.Copy(destination, source)
 		return err
+	} else {
+		return fmt.Errorf("%s is not a regular file or directory", src)
 	}
-	defer destination.Close()
-	_, err = io.Copy(destination, source)
-	return err
+	return nil
 }
 
 func fileChanged(path string, lastModTime time.Time) bool {
