@@ -19,6 +19,15 @@ type model struct {
 	lastModified  map[string]time.Time
 }
 
+// handleError is a utility function to handle errors and return early if needed.
+func handleError(err error) error {
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+
 func main() {
 	var rootCmd = &cobra.Command{
 		Use:   "gart",
@@ -51,9 +60,8 @@ func watchFolder(cmd *cobra.Command, args []string) {
 
 	p := tea.NewProgram(initialModel)
 	_, err := p.Run()
-	if err != nil {
-		log.Panic(err)
-	}
+	log.Print(handleError(err))
+	
 }
 
 func (m model) Init() tea.Cmd {
@@ -97,38 +105,56 @@ func (m model) watchFiles() tea.Msg {
 	return nil
 }
 
-func copyFile(src, dst string) error {
-	sourceFileInfo, err := os.Stat(src)
+// copyRegularFile handles the copying of a regular file.
+func copyRegularFile(src, dst string) error {
+	source, err := os.Open(src)
 	if err != nil {
 		return err
 	}
+	defer source.Close()
 
-	if sourceFileInfo.IsDir() {
-		// Create the destination directory if it doesn't exist
-		err = os.MkdirAll(dst, sourceFileInfo.Mode())
-		if err != nil {
-			return err
-		}
-		// Optionally, you can call a function here to copy the contents of the directory recursively
-	} else if sourceFileInfo.Mode().IsRegular() {
-		source, err := os.Open(src)
-		if err != nil {
-			return err
-		}
-		defer source.Close()
-
-		destination, err := os.Create(dst)
-		if err != nil {
-			return err
-		}
-		defer destination.Close()
-
-		_, err = io.Copy(destination, source)
+	destination, err := os.Create(dst)
+	if err != nil {
 		return err
-	} else {
-		return fmt.Errorf("%s is not a regular file or directory", src)
 	}
-	return nil
+	defer destination.Close()
+
+	_, err = io.Copy(destination, source)
+	return err
+}
+
+
+// createDirIfNotExist creates the destination directory if it doesn't exist.
+func createDirIfNotExist(dst string, mode os.FileMode) error {
+	err := os.MkdirAll(dst, mode)
+	return err
+}
+
+// copyFile is the main function that now delegates to other functions.
+func copyFile(src, dst string) error {
+	sourceFileInfo, err := os.Stat(src)
+	if handleError(err) != nil {
+		return err
+	}
+
+	// Handle directory case
+	if sourceFileInfo.IsDir() {
+		err = createDirIfNotExist(dst, sourceFileInfo.Mode())
+		if handleError(err) != nil {
+			return err
+		}
+		// Optionally, call a function here to copy the contents of the directory recursively
+		return nil
+	}
+
+	// Handle regular file case
+	if sourceFileInfo.Mode().IsRegular() {
+		err = copyRegularFile(src, dst)
+		return handleError(err)
+	}
+
+	// Handle the case where the file is neither a regular file nor a directory
+	return fmt.Errorf("%s is not a regular file or directory", src)
 }
 
 func fileChanged(path string, lastModTime time.Time) bool {
