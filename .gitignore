@@ -3,3 +3,8 @@ tmp
 build
 .env
 .tml
+cache
+.cache
+store
+.store
+*.toml
