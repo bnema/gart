@@ -32,14 +32,15 @@ func LoadConfig(configPath string, dotfiles map[string]string) {
 	}
 }
 
-func SaveConfig(dotfiles map[string]string) {
+func SaveConfig(ConfigFilePath string, dotfiles map[string]string) {
 	data, err := toml.Marshal(dotfiles)
 	if err != nil {
 		fmt.Printf("Error marshaling config: %v\n", err)
 		return
 	}
 
-	err = os.WriteFile("config.toml", data, 0644)
+	err = os.WriteFile(ConfigFilePath, data, 0664)
+
 	if err != nil {
 		fmt.Printf("Error saving config: %v\n", err)
 	}
