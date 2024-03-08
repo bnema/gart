@@ -19,6 +19,11 @@ func CopyDirectory(src, dst string) error {
 	}
 
 	for _, entry := range entries {
+		if entry.Name() == ".git" || entry.Name() == ".github" {
+			// Skip .git and .github directories
+			continue
+		}
+
 		srcPath := filepath.Join(src, entry.Name())
 		dstPath := filepath.Join(dst, entry.Name())
 

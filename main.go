@@ -257,6 +257,19 @@ func (app *App) runAddForm() {
 
 func (app *App) runUpdateView(name, path string) {
 	storePath := filepath.Join(app.StorePath, name)
+
+	// if dir not exist, Create the necessary directories in storePath if they don't exist
+	_, err := os.Stat(storePath)
+	if os.IsNotExist(err) {
+
+		err := system.CopyDirectory(path, storePath)
+		if err != nil {
+			fmt.Printf("Error creating directories in storePath: %v\n", err)
+			return
+
+		}
+	}
+
 	changed, err := utils.DiffFiles(path, storePath)
 	if err != nil {
 		fmt.Printf("Error comparing dotfiles: %v\n", err)
@@ -279,28 +292,36 @@ func (app *App) runListView() {
 }
 
 func (app *App) addDotfile(path, name string) {
-	// Get the user's home directory
-	home, err := os.UserHomeDir()
-	if err != nil {
-		fmt.Printf("Error getting home directory: %v\n", err)
-		return
+	// If path starts with ~, replace it with the user's home directory
+	if strings.HasPrefix(path, "~") {
+		// Get the user's home directory
+		home, err := os.UserHomeDir()
+		if err != nil {
+			fmt.Printf("Error getting home directory: %v\n", err)
+			return
+		}
+
+		// Replace the tilde with the user's home directory
+		path = strings.Replace(path, "~", home, 1)
 	}
 
-	// Remove the tilde from the path
-	cleanedPath := strings.TrimPrefix(path, "~")
-
-	// Expand the path
-	expandedPath := filepath.Join(home, cleanedPath)
+	// Clean the path to remove any relative components
+	cleanedPath := filepath.Clean(path)
 
 	storePath := filepath.Join(app.StorePath, name)
-	err = system.CopyDirectory(expandedPath, storePath)
+	err := system.CopyDirectory(cleanedPath, storePath)
 	if err != nil {
 		fmt.Printf("Error copying directory: %v\n", err)
 		return
 	}
 
-	app.ListModel.dotfiles[name] = expandedPath
-	config.SaveConfig(app.ConfigFilePath, app.ListModel.dotfiles)
+	app.ListModel.dotfiles[name] = cleanedPath
+	err = config.SaveConfig(app.ConfigFilePath, app.ListModel.dotfiles)
+	if err != nil {
+		fmt.Printf("Error saving configuration: %v\n", err)
+		return
+	}
+
 	fmt.Printf("Dotfile added: %s\n", name)
 }
 

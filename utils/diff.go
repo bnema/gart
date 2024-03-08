@@ -9,7 +9,10 @@ import (
 	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
+// DiffFiles compares two files or directories and returns true if they are different
 func DiffFiles(path1, path2 string) (bool, error) {
+	// p1 = origin
+	// p2 = destination
 	dmp := diffmatchpatch.New()
 
 	var diff func(string, string) (bool, error)
@@ -20,6 +23,13 @@ func DiffFiles(path1, path2 string) (bool, error) {
 			return false, nil
 		} else if err != nil {
 			return false, err
+		}
+
+		if info1.IsDir() {
+			if info1.Name() == ".git" || info1.Name() == ".github" {
+				// Skip .git and .github directories
+				return false, nil
+			}
 		}
 
 		info2, err := os.Stat(p2)
@@ -42,6 +52,11 @@ func DiffFiles(path1, path2 string) (bool, error) {
 
 			changed := false
 			for _, file1 := range files1 {
+				if file1.Name() == ".git" || file1.Name() == ".github" {
+					// Skip .git and .github directories
+					continue
+				}
+
 				filePath1 := filepath.Join(p1, file1.Name())
 				filePath2 := filepath.Join(p2, file1.Name())
 
