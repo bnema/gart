@@ -6,6 +6,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/bnema/Gart/config"
+	"github.com/bnema/Gart/system"
+	"github.com/bnema/Gart/utils"
 	"github.com/charmbracelet/bubbles/table"
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
@@ -22,19 +25,21 @@ var (
 	blurredButton = fmt.Sprintf("[ %s ]", blurredStyle.Render("Submit"))
 )
 
-type model struct {
-	table      table.Model
-	focusIndex int
-	inputs     []textinput.Model
-	dotfiles   map[string]string
-	tooltip    string
+type App struct {
+	ListModel  listModel
+	AddModel   addModel
+	ConfigPath string
+	StorePath  string
 }
 
 type addModel struct {
 	focusIndex int
 	inputs     []textinput.Model
-	dotfiles   map[string]string
-	tooltip    string
+}
+
+type listModel struct {
+	table    table.Model
+	dotfiles map[string]string
 }
 
 func initialAddModel() addModel {
@@ -106,10 +111,6 @@ func (m addModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyEnter:
 			if m.focusIndex == len(m.inputs) {
 				if m.inputs[0].Value() != "" && m.inputs[1].Value() != "" {
-					dotfiles := make(map[string]string)
-					loadConfig(dotfiles)
-					addDotfile(m.inputs[0].Value(), m.inputs[1].Value(), dotfiles)
-					saveConfig(dotfiles)
 					return m, tea.Quit
 				}
 			} else {
@@ -173,14 +174,9 @@ func (m addModel) View() string {
 	return b.String()
 }
 
-type listModel struct {
-	table    table.Model
-	dotfiles map[string]string
-}
-
-func initialListModel() listModel {
+func initialListModel(app *App) listModel {
 	dotfiles := make(map[string]string)
-	loadConfig(dotfiles)
+	config.LoadConfig(app.ConfigPath, dotfiles)
 
 	var rows []table.Row
 	for name, path := range dotfiles {
@@ -244,16 +240,24 @@ func (m listModel) View() string {
 	return m.table.View()
 }
 
-func runAddForm() {
-	if _, err := tea.NewProgram(initialAddModel()).Run(); err != nil {
+func (app *App) runAddForm() {
+	model := initialAddModel()
+	if finalModel, err := tea.NewProgram(model).Run(); err != nil {
 		fmt.Println("Error running program:", err)
 		os.Exit(1)
+	} else {
+		finalAddModel, ok := finalModel.(addModel)
+		if ok {
+			if finalAddModel.inputs[0].Value() != "" && finalAddModel.inputs[1].Value() != "" {
+				app.addDotfile(finalAddModel.inputs[0].Value(), finalAddModel.inputs[1].Value())
+			}
+		}
 	}
 }
 
-func runUpdateView(name, path string) {
-	storePath := filepath.Join(".store", name)
-	changed, err := diffFiles(path, storePath)
+func (app *App) runUpdateView(name, path string) {
+	storePath := filepath.Join(app.StorePath, name)
+	changed, err := utils.DiffFiles(path, storePath)
 	if err != nil {
 		fmt.Printf("Error comparing dotfiles: %v\n", err)
 		return
@@ -267,14 +271,14 @@ func runUpdateView(name, path string) {
 	}
 }
 
-func runListView() {
-	if _, err := tea.NewProgram(initialListModel()).Run(); err != nil {
+func (app *App) runListView() {
+	if _, err := tea.NewProgram(app.ListModel).Run(); err != nil {
 		fmt.Println("Error running program:", err)
 		os.Exit(1)
 	}
 }
 
-func addDotfile(path, name string, dotfiles map[string]string) {
+func (app *App) addDotfile(path, name string) {
 	// Get the user's home directory
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -288,18 +292,26 @@ func addDotfile(path, name string, dotfiles map[string]string) {
 	// Expand the path
 	expandedPath := filepath.Join(home, cleanedPath)
 
-	storePath := filepath.Join(".store", name)
-	err = copyDirectory(expandedPath, storePath)
+	storePath := filepath.Join(app.StorePath, name)
+	err = system.CopyDirectory(expandedPath, storePath)
 	if err != nil {
 		fmt.Printf("Error copying directory: %v\n", err)
 		return
 	}
 
-	dotfiles[name] = expandedPath
+	app.ListModel.dotfiles[name] = expandedPath
+	config.SaveConfig(app.ListModel.dotfiles)
 	fmt.Printf("Dotfile added: %s\n", name)
 }
 
 func main() {
+	app := &App{
+		ConfigPath: ".config",
+		StorePath:  ".store",
+	}
+
+	app.ListModel = initialListModel(app)
+
 	var rootCmd = &cobra.Command{
 		Use:   "gart",
 		Short: "Gart is a dotfile manager",
@@ -311,7 +323,7 @@ func main() {
 		Use:   "list",
 		Short: "List all dotfiles",
 		Run: func(cmd *cobra.Command, args []string) {
-			runListView()
+			app.runListView()
 		},
 	}
 
@@ -319,7 +331,7 @@ func main() {
 		Use:   "add",
 		Short: "Add a new dotfile",
 		Run: func(cmd *cobra.Command, args []string) {
-			runAddForm()
+			app.runAddForm()
 		},
 	}
 
@@ -329,22 +341,18 @@ func main() {
 		Run: func(cmd *cobra.Command, args []string) {
 			if len(args) == 0 {
 				// Update all dotfiles
-				dotfiles := make(map[string]string)
-				loadConfig(dotfiles)
-				for name, path := range dotfiles {
-					runUpdateView(name, path)
+				for name, path := range app.ListModel.dotfiles {
+					app.runUpdateView(name, path)
 				}
 			} else {
 				// Update a specific dotfile
 				name := args[0]
-				dotfiles := make(map[string]string)
-				loadConfig(dotfiles)
-				path, ok := dotfiles[name]
+				path, ok := app.ListModel.dotfiles[name]
 				if !ok {
 					fmt.Printf("Dotfile '%s' not found.\n", name)
 					return
 				}
-				runUpdateView(name, path)
+				app.runUpdateView(name, path)
 			}
 		},
 	}

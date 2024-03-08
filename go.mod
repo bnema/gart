@@ -1,4 +1,4 @@
-module gart
+module github.com/bnema/Gart
 
 go 1.22.0
 
