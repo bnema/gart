@@ -26,10 +26,10 @@ var (
 )
 
 type App struct {
-	ListModel  listModel
-	AddModel   addModel
-	ConfigPath string
-	StorePath  string
+	ListModel      listModel
+	AddModel       addModel
+	ConfigFilePath string
+	StorePath      string
 }
 
 type addModel struct {
@@ -176,7 +176,7 @@ func (m addModel) View() string {
 
 func initialListModel(app *App) listModel {
 	dotfiles := make(map[string]string)
-	config.LoadConfig(app.ConfigPath, dotfiles)
+	config.LoadConfig(app.ConfigFilePath, dotfiles)
 
 	var rows []table.Row
 	for name, path := range dotfiles {
@@ -300,16 +300,17 @@ func (app *App) addDotfile(path, name string) {
 	}
 
 	app.ListModel.dotfiles[name] = expandedPath
-	config.SaveConfig(app.ListModel.dotfiles)
+	config.SaveConfig(app.ConfigFilePath, app.ListModel.dotfiles)
 	fmt.Printf("Dotfile added: %s\n", name)
 }
 
 func main() {
-	app := &App{
-		ConfigPath: ".config",
-		StorePath:  ".store",
-	}
+	configPath := utils.GetOSConfigPath()
 
+	app := &App{
+		ConfigFilePath: filepath.Join(configPath, "config.toml"),
+		StorePath:      filepath.Join(configPath, ".store"),
+	}
 	app.ListModel = initialListModel(app)
 
 	var rootCmd = &cobra.Command{
