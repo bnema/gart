@@ -11,8 +11,12 @@ Gart is a command-line tool written in Go that helps you manage and sync your do
 - Auto-creates the configuration file if it doesn't exist
 - Allows adding new dotfiles to the configuration
 - Lists all the dotfiles currently being managed in a sexy table.
-- TODO: Delete from the table
-- TODO: Custom storage location and/or default OS configuration directory.
+
+## Roadmap
+- [ ] Delete from the table
+- [ ] Custom storage location and/or default OS configuration directory (AppData, ~/.config, etc.)
+- [ ] Add a quick one liner with flags gart add ~/.config/nvim
+- [ ] A watcher for changes in the dotfiles (for services like systemd, etc.)
 
 ## Installation
 
