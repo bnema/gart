@@ -10,14 +10,12 @@ import (
 )
 
 // DiffFiles compares two files or directories and returns true if they are different
-func DiffFiles(path1, path2 string) (bool, error) {
-	// p1 = origin
-	// p2 = destination
+func DiffFiles(origin, dest string) (bool, error) {
 	dmp := diffmatchpatch.New()
 
 	var diff func(string, string) (bool, error)
-	diff = func(p1, p2 string) (bool, error) {
-		info1, err := os.Stat(p1)
+	diff = func(origin, dest string) (bool, error) {
+		info1, err := os.Stat(origin)
 		if os.IsNotExist(err) {
 			// Skip the comparison if the file or directory doesn't exist in path1
 			return false, nil
@@ -32,11 +30,11 @@ func DiffFiles(path1, path2 string) (bool, error) {
 			}
 		}
 
-		info2, err := os.Stat(p2)
+		info2, err := os.Stat(dest)
 		if os.IsNotExist(err) {
 			// The file exists in path1 but not in path2
 			// Copy the file from path1 to path2
-			if err := system.CopyFile(p1, p2); err != nil {
+			if err := system.CopyFile(origin, dest); err != nil {
 				return false, err
 			}
 			return true, nil
@@ -45,22 +43,22 @@ func DiffFiles(path1, path2 string) (bool, error) {
 		}
 
 		if info1.IsDir() && info2.IsDir() {
-			files1, err := os.ReadDir(p1)
+			filesOrigin, err := os.ReadDir(origin)
 			if err != nil {
 				return false, err
 			}
 
 			changed := false
-			for _, file1 := range files1 {
-				if file1.Name() == ".git" || file1.Name() == ".github" {
+			for _, fileOrig := range filesOrigin {
+				if fileOrig.Name() == ".git" || fileOrig.Name() == ".github" {
 					// Skip .git and .github directories
 					continue
 				}
 
-				filePath1 := filepath.Join(p1, file1.Name())
-				filePath2 := filepath.Join(p2, file1.Name())
+				filePathOrig := filepath.Join(origin, fileOrig.Name())
+				filePathDest := filepath.Join(dest, fileOrig.Name())
 
-				fileChanged, err := diff(filePath1, filePath2)
+				fileChanged, err := diff(filePathOrig, filePathDest)
 				if err != nil {
 					return false, err
 				}
@@ -70,20 +68,20 @@ func DiffFiles(path1, path2 string) (bool, error) {
 			}
 			return changed, nil
 		} else if !info1.IsDir() && !info2.IsDir() {
-			content1, err := os.ReadFile(p1)
+			contentOrig, err := os.ReadFile(origin)
 			if err != nil {
 				return false, err
 			}
 
-			content2, err := os.ReadFile(p2)
+			contentDest, err := os.ReadFile(dest)
 			if err != nil {
 				return false, err
 			}
 
-			diffs := dmp.DiffMain(string(content1), string(content2), false)
+			diffs := dmp.DiffMain(string(contentOrig), string(contentDest), false)
 			if len(diffs) > 1 {
 				// Differences found, copy the file from path1 to path2
-				if err := system.CopyFile(p1, p2); err != nil {
+				if err := system.CopyFile(origin, dest); err != nil {
 					return false, err
 				}
 				return true, nil
@@ -93,7 +91,7 @@ func DiffFiles(path1, path2 string) (bool, error) {
 		return false, nil
 	}
 
-	changed, err := diff(path1, path2)
+	changed, err := diff(origin, dest)
 	if err != nil {
 		return false, err
 	}

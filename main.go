@@ -291,40 +291,6 @@ func (app *App) runListView() {
 	}
 }
 
-func (app *App) addDotfile(path, name string) {
-	// If path starts with ~, replace it with the user's home directory
-	if strings.HasPrefix(path, "~") {
-		// Get the user's home directory
-		home, err := os.UserHomeDir()
-		if err != nil {
-			fmt.Printf("Error getting home directory: %v\n", err)
-			return
-		}
-
-		// Replace the tilde with the user's home directory
-		path = strings.Replace(path, "~", home, 1)
-	}
-
-	// Clean the path to remove any relative components
-	cleanedPath := filepath.Clean(path)
-
-	storePath := filepath.Join(app.StorePath, name)
-	err := system.CopyDirectory(cleanedPath, storePath)
-	if err != nil {
-		fmt.Printf("Error copying directory: %v\n", err)
-		return
-	}
-
-	app.ListModel.dotfiles[name] = cleanedPath
-	err = config.SaveConfig(app.ConfigFilePath, app.ListModel.dotfiles)
-	if err != nil {
-		fmt.Printf("Error saving configuration: %v\n", err)
-		return
-	}
-
-	fmt.Printf("Dotfile added: %s\n", name)
-}
-
 func main() {
 	configPath := utils.GetOSConfigPath()
 
