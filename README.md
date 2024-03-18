@@ -12,11 +12,12 @@ Gart is a command-line tool written in Go that helps you manage and sync your do
 - Lists all the dotfiles currently being managed in a sexy table.
 
 ## Roadmap
-- [ ] Delete from the table
+- [ ] Delete/Unfollow from the ui table
+- [ ] A watcher for changes in the dotfiles (for services like systemd).
+- [ ] Create a state with git after each successful update
+- [x] Beta: Lazy wildcard add (Ex: ~/.*)
 - [x] Default OS configuration directory storage (AppData, ~/.config, etc.)
 - [x] Add a quick one liner with flags gart add ~/.config/nvim
-- [ ] A watcher for changes in the dotfiles (for services like systemd).
-- [x] Lazy wildcard add (Ex: ~/.*)
 ## Installation
 
 ### Prerequisites
