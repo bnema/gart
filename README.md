@@ -26,17 +26,17 @@ Gart is a command-line tool written in Go that helps you manage and sync your do
 
 ### Installing via Makefile
 
-1. Clone this repository:
+Clone this repository:
 ```bash
 git clone https://github.com/bnema/gart.git
 ```
 
-2. Navigate to the project directory:
+Navigate to the project directory:
 ```bash
 cd gart
 ```
 
-3. Build and install the binary using the provided Makefile:
+1. Build and install the binary using the provided Makefile:
 ```bash
 make && sudo make install
 ```
