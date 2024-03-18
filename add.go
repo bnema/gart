@@ -89,8 +89,10 @@ func (app *App) addDotfile(path, name string) {
 					})
 
 					if err != nil {
-						fmt.Printf("Error copying directory: %v\n", err)
 					}
+
+					fmt.Printf("Dotfiles added: %s\n", name)
+
 				}
 			}()
 		}
@@ -98,26 +100,36 @@ func (app *App) addDotfile(path, name string) {
 		// Wait for all worker goroutines to finish
 		wg.Wait()
 
+		// Start a new goroutine to save the configuration
+		go func() {
+			err := config.SaveConfig(app.ConfigFilePath, app.ListModel.dotfiles)
+			if err != nil {
+				fmt.Printf("Error saving configuration: %v\n", err)
+				return
+			}
+			fmt.Printf("Configuration saved successfully\n")
+		}()
+
+	} else {
+
+		cleanedPath := filepath.Clean(path)
+
+		storePath := filepath.Join(app.StorePath, name)
+		err := system.CopyDirectory(cleanedPath, storePath)
+		if err != nil {
+			fmt.Printf("Error copying directory: %v\n", err)
+			return
+		}
+
+		app.ListModel.dotfiles[name] = cleanedPath
+		err = config.SaveConfig(app.ConfigFilePath, app.ListModel.dotfiles)
+		if err != nil {
+			fmt.Printf("Error saving configuration: %v\n", err)
+			return
+		}
+
+		// TODO: Create a state with git with the date
+
+		fmt.Printf("Dotfile added: %s\n", name)
 	}
-
-	cleanedPath := filepath.Clean(path)
-
-	storePath := filepath.Join(app.StorePath, name)
-	err := system.CopyDirectory(cleanedPath, storePath)
-	if err != nil {
-		fmt.Printf("Error copying directory: %v\n", err)
-		return
-	}
-
-	app.ListModel.dotfiles[name] = cleanedPath
-	err = config.SaveConfig(app.ConfigFilePath, app.ListModel.dotfiles)
-	if err != nil {
-		fmt.Printf("Error saving configuration: %v\n", err)
-		return
-	}
-
-	// TODO: Create a state with git with the date
-
-	fmt.Printf("Dotfile added: %s\n", name)
-
 }
