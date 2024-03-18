@@ -2,14 +2,13 @@ package main
 
 import (
 	"fmt"
+	"github.com/bnema/Gart/config"
+	"github.com/bnema/Gart/system"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
-
-	"github.com/bnema/Gart/config"
-	"github.com/bnema/Gart/system"
 )
 
 func (app *App) addDotfile(path, name string) {
@@ -60,34 +59,65 @@ func (app *App) addDotfile(path, name string) {
 			go func() {
 				defer wg.Done()
 				for dirPath := range dirChan {
-					relPath, _ := filepath.Rel(directoryPath, dirPath)
-					destPath := filepath.Join(app.StorePath, name, relPath)
-					system.CopyDirectory(dirPath, destPath)
+					err := filepath.Walk(dirPath, func(filePath string, info os.FileInfo, err error) error {
+						if err != nil {
+							return err
+						}
+
+						// Check if the file size is within the limit (1024*1024 bytes)
+						if !info.IsDir() && info.Size() > 1024*1024 {
+							fmt.Printf("Ignored file due to size limit: %s\n", filePath)
+							return nil
+						}
+
+						relPath, _ := filepath.Rel(directoryPath, filePath)
+						destPath := filepath.Join(app.StorePath, name, relPath)
+
+						if info.IsDir() {
+							err := os.MkdirAll(destPath, info.Mode())
+							if err != nil {
+								return err
+							}
+						} else {
+							err := system.CopyFile(filePath, destPath)
+							if err != nil {
+								return err
+							}
+						}
+
+						return nil
+					})
+
+					if err != nil {
+						fmt.Printf("Error copying directory: %v\n", err)
+					}
 				}
 			}()
 		}
 
 		// Wait for all worker goroutines to finish
 		wg.Wait()
-	} else {
-		cleanedPath := filepath.Clean(path)
 
-		storePath := filepath.Join(app.StorePath, name)
-		err := system.CopyDirectory(cleanedPath, storePath)
-		if err != nil {
-			fmt.Printf("Error copying directory: %v\n", err)
-			return
-		}
-
-		app.ListModel.dotfiles[name] = cleanedPath
-		err = config.SaveConfig(app.ConfigFilePath, app.ListModel.dotfiles)
-		if err != nil {
-			fmt.Printf("Error saving configuration: %v\n", err)
-			return
-		}
-
-		// TODO: Create a state with git with the date
-
-		fmt.Printf("Dotfile added: %s\n", name)
 	}
+
+	cleanedPath := filepath.Clean(path)
+
+	storePath := filepath.Join(app.StorePath, name)
+	err := system.CopyDirectory(cleanedPath, storePath)
+	if err != nil {
+		fmt.Printf("Error copying directory: %v\n", err)
+		return
+	}
+
+	app.ListModel.dotfiles[name] = cleanedPath
+	err = config.SaveConfig(app.ConfigFilePath, app.ListModel.dotfiles)
+	if err != nil {
+		fmt.Printf("Error saving configuration: %v\n", err)
+		return
+	}
+
+	// TODO: Create a state with git with the date
+
+	fmt.Printf("Dotfile added: %s\n", name)
+
 }
