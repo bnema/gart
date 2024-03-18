@@ -13,11 +13,11 @@ import (
 )
 
 func (app *App) addDotfile(path, name string) {
-	// Si le chemin commence par ~, remplacez-le par le répertoire personnel de l'utilisateur
+	// If the path starts with ~, replace it with the user's home directory
 	if strings.HasPrefix(path, "~") {
 		home, err := os.UserHomeDir()
 		if err != nil {
-			fmt.Printf("Erreur lors de l'obtention du répertoire personnel : %v\n", err)
+			fmt.Printf("Error getting home directory: %v\n", err)
 			return
 		}
 		path = home + path[1:]
@@ -26,51 +26,48 @@ func (app *App) addDotfile(path, name string) {
 	if strings.HasSuffix(path, "*") {
 		directoryPath := strings.TrimSuffix(path, "*")
 
-		// Créez un canal tamponné pour contenir les chemins des répertoires
-		dirChan := make(chan string, 1000)
+		// Use filepath.Glob to get the list of directories matching the pattern
+		dirs, err := filepath.Glob(filepath.Join(directoryPath, ".*"))
+		if err != nil {
+			fmt.Printf("Error using filepath.Glob: %v\n", err)
+			return
+		}
 
-		// Créez un groupe d'attente pour attendre que toutes les goroutines des travailleurs se terminent
+		// Create a wait group to wait for all worker goroutines to finish
 		var wg sync.WaitGroup
 
-		// Déterminez le nombre de goroutines de travailleurs en fonction des cœurs CPU disponibles
+		// Determine the number of worker goroutines based on available CPU cores
 		numWorkers := runtime.NumCPU()
 
-		// Démarrez les goroutines des travailleurs
+		// Create a buffered channel to hold the directory paths
+		dirChan := make(chan string, len(dirs))
+
+		// Send the directory paths to the channel
+		for _, dir := range dirs {
+			if (filepath.Base(dir) == ".config" && strings.Contains(dir, "gart")) || filepath.Base(dir) == ".local" {
+				fmt.Printf("Ignored directory: %s\n", dir)
+				continue
+			}
+			if info, err := os.Stat(dir); err == nil && info.IsDir() {
+				dirChan <- dir
+			}
+		}
+		close(dirChan)
+
+		// Start the worker goroutines
 		for i := 0; i < numWorkers; i++ {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
 				for dirPath := range dirChan {
-					dirName := filepath.Base(dirPath)
-					if (dirName == ".config" && strings.Contains(dirPath, "gart")) || dirName == ".local" {
-						fmt.Printf("Répertoire ignoré : %s\n", dirPath)
-						continue
-					}
-					destPath := filepath.Join(app.StorePath, name, dirName)
+					relPath, _ := filepath.Rel(directoryPath, dirPath)
+					destPath := filepath.Join(app.StorePath, name, relPath)
 					system.CopyDirectory(dirPath, destPath)
 				}
 			}()
 		}
 
-		// Parcourez l'arborescence des répertoires et envoyez les chemins des répertoires au canal
-		err := filepath.Walk(directoryPath, func(filePath string, info os.FileInfo, err error) error {
-			if err != nil {
-				return err
-			}
-			if info.IsDir() {
-				dirChan <- filePath
-			}
-			return nil
-		})
-		if err != nil {
-			fmt.Printf("Erreur lors de la traversée du répertoire : %v\n", err)
-			return
-		}
-
-		// Fermez le canal pour signaler aux travailleurs de s'arrêter
-		close(dirChan)
-
-		// Attendez que toutes les goroutines des travailleurs se terminent
+		// Wait for all worker goroutines to finish
 		wg.Wait()
 	} else {
 		cleanedPath := filepath.Clean(path)
@@ -78,17 +75,19 @@ func (app *App) addDotfile(path, name string) {
 		storePath := filepath.Join(app.StorePath, name)
 		err := system.CopyDirectory(cleanedPath, storePath)
 		if err != nil {
-			fmt.Printf("Erreur lors de la copie du répertoire : %v\n", err)
+			fmt.Printf("Error copying directory: %v\n", err)
 			return
 		}
 
 		app.ListModel.dotfiles[name] = cleanedPath
 		err = config.SaveConfig(app.ConfigFilePath, app.ListModel.dotfiles)
 		if err != nil {
-			fmt.Printf("Erreur lors de l'enregistrement de la configuration : %v\n", err)
+			fmt.Printf("Error saving configuration: %v\n", err)
 			return
 		}
 
-		fmt.Printf("Dotfile ajouté : %s\n", name)
+		// TODO: Create a state with git with the date
+
+		fmt.Printf("Dotfile added: %s\n", name)
 	}
 }
