@@ -1,4 +1,3 @@
-
 # Gart - Dotfile Manager
 
 Gart is a command-line tool written in Go that helps you manage and sync your dotfiles across different systems. With Gart, you can easily keep your configuration files up to date and maintain a consistent setup across multiple machines.
@@ -15,9 +14,9 @@ Gart is a command-line tool written in Go that helps you manage and sync your do
 ## Roadmap
 - [ ] Delete from the table
 - [x] Default OS configuration directory storage (AppData, ~/.config, etc.)
-- [ ] Add a quick one liner with flags gart add ~/.config/nvim
+- [x] Add a quick one liner with flags gart add ~/.config/nvim
 - [ ] A watcher for changes in the dotfiles (for services like systemd).
-
+- [x] Lazy wildcard add (Ex: ~/.*)
 ## Installation
 
 ### Prerequisites
@@ -41,14 +40,18 @@ Gart is a command-line tool written in Go that helps you manage and sync your do
 
 ## Usage
 
-2. To add a new dotfile to the configuration, use the `add` command to display the text inputs for the path and the name.
+2. To add a new dotfile to the configuration, use the `add` command to display the text inputs for the path and the name or simply use a one liner
    ```
    gart add 
+   ```
+   or 
+   ```
+   gart add ~/.config/nvim 
    ```
 
 3. To update a specific dotfile, use the `update` command followed by the name of the dotfile:
    ```
-   gart update neovim
+   gart update nvim
    ```
    This will detect changes in the specified dotfile and save the updated version to your designated store directory.
 
@@ -70,15 +73,11 @@ Example:
 
 ```toml
 [dotfiles]
-neovim = "~/.config/nvim"
+nvim = "~/.config/nvim"
 zsh = "~/.zshrc"
 ```
 
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
-```
 
-This README includes the full markdown formatting, including headings, code blocks, and links. It provides instructions for installing Gart using the provided Makefile or manually, along with usage examples and configuration details.
-
-Feel free to customize the README further based on your specific project requirements and preferences.
