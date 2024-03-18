@@ -316,10 +316,25 @@ func main() {
 	}
 
 	var addCmd = &cobra.Command{
-		Use:   "add",
+		Use:   "add [path] [name]",
 		Short: "Add a new dotfile",
 		Run: func(cmd *cobra.Command, args []string) {
-			app.runAddForm()
+			if len(args) == 0 {
+				// If no arguments are provided, start the form
+				app.runAddForm()
+			} else if len(args) == 1 {
+				// If only the path is provided, use the last part of the path as the name
+				path := args[0]
+				name := filepath.Base(path)
+				app.addDotfile(path, name)
+			} else if len(args) == 2 {
+				// If both path and name are provided, use them as is
+				path := args[0]
+				name := args[1]
+				app.addDotfile(path, name)
+			} else {
+				fmt.Println("Invalid arguments. Usage: add [path] opt:[name]")
+			}
 		},
 	}
 
