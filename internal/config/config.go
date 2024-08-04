@@ -7,22 +7,22 @@ import (
 	"github.com/pelletier/go-toml"
 )
 
-func LoadConfig(configPath string, dotfiles map[string]string) {
+func LoadConfig(configPath string, dotfiles map[string]string) (map[string]string, error) {
 
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return
+			return dotfiles, nil
 		}
 		fmt.Printf("Failed to read config file: %v\n", err)
-		return
+		return nil, err
 	}
 
 	var config map[string]interface{}
 	err = toml.Unmarshal(data, &config)
 	if err != nil {
 		fmt.Printf("Failed to parse config file: %v\n", err)
-		return
+		return nil, err
 	}
 
 	for key, value := range config {
@@ -30,6 +30,8 @@ func LoadConfig(configPath string, dotfiles map[string]string) {
 			dotfiles[key] = path
 		}
 	}
+
+	return dotfiles, nil
 }
 
 func SaveConfig(ConfigFilePath string, dotfiles map[string]string) error {

@@ -4,8 +4,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/bnema/Gart/system"
-
+	"github.com/bnema/Gart/internal/system"
 	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
