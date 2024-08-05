@@ -1,17 +1,18 @@
-package main
+package app
 
 import (
 	"fmt"
-	"github.com/bnema/Gart/config"
-	"github.com/bnema/Gart/system"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
+
+	"github.com/bnema/Gart/internal/config"
+	"github.com/bnema/Gart/internal/system"
 )
 
-func (app *App) addDotfile(path, name string) {
+func (app *App) AddDotfile(path, name string) {
 	// If the path starts with ~, replace it with the user's home directory
 	if strings.HasPrefix(path, "~") {
 		home, err := os.UserHomeDir()
@@ -102,7 +103,7 @@ func (app *App) addDotfile(path, name string) {
 
 		// Start a new goroutine to save the configuration
 		go func() {
-			err := config.SaveConfig(app.ConfigFilePath, app.ListModel.dotfiles)
+			err := config.SaveConfig(app.ConfigFilePath, app.ListModel.Dotfiles)
 			if err != nil {
 				fmt.Printf("Error saving configuration: %v\n", err)
 				return
@@ -121,8 +122,8 @@ func (app *App) addDotfile(path, name string) {
 			return
 		}
 
-		app.ListModel.dotfiles[name] = cleanedPath
-		err = config.SaveConfig(app.ConfigFilePath, app.ListModel.dotfiles)
+		app.ListModel.Dotfiles[name] = cleanedPath
+		err = config.SaveConfig(app.ConfigFilePath, app.ListModel.Dotfiles)
 		if err != nil {
 			fmt.Printf("Error saving configuration: %v\n", err)
 			return
