@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/bnema/Gart/internal/config"
 	"github.com/bnema/Gart/internal/system"
 	"github.com/bnema/Gart/internal/ui"
 	"github.com/bnema/Gart/internal/utils"
@@ -65,8 +66,32 @@ func (app *App) RunUpdateView(name, path string) {
 }
 
 func (app *App) RunListView() {
-	if _, err := tea.NewProgram(app.ListModel).Run(); err != nil {
-		fmt.Println("Error running program:", err)
+	// We need to retreive the dotfiles list from the config file
+	dotfiles := app.GetDotfilesList()
+
+	model := ui.InitListModel(dotfiles)
+	if finalModel, err := tea.NewProgram(model).Run(); err == nil {
+		finalListModel, ok := finalModel.(ui.ListModel)
+		if ok {
+			fmt.Println(finalListModel.Table.View())
+		} else {
+			fmt.Println("Erreur lors de l'exécution du programme :", err)
+			os.Exit(1)
+		}
+	} else {
+		fmt.Println("Erreur lors de l'exécution du programme :", err)
 		os.Exit(1)
 	}
+}
+
+// GetDotfilesList returns the dotfiles list from the config.toml file (after line [[dotfiles]])
+func (app *App) GetDotfilesList() map[string]string {
+	dotfiles, err := config.LoadConfig(app.ConfigFilePath)
+	if err != nil {
+		fmt.Printf("Erreur lors du chargement du fichier de configuration : %v\n", err)
+		os.Exit(1)
+	}
+
+	return dotfiles
+
 }

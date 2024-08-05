@@ -11,8 +11,7 @@ type ListModel struct {
 	Dotfiles map[string]string
 }
 
-func InitListModel() ListModel {
-	dotfiles := make(map[string]string)
+func InitListModel(dotfiles map[string]string) ListModel {
 
 	var rows []table.Row
 	for name, path := range dotfiles {
