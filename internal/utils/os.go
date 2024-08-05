@@ -6,7 +6,7 @@ import (
 	"runtime"
 )
 
-func GetOSConfigPath() string {
+func GetOSConfigPath() (string, error) {
 	var configPath string
 
 	switch runtime.GOOS {
@@ -18,5 +18,18 @@ func GetOSConfigPath() string {
 		configPath = ".config"
 	}
 
-	return configPath
+	// Return an error if we cannot determine the config path
+	if configPath == "" {
+		return "", os.ErrNotExist
+	}
+
+	// Create the config directory if it doesn't exist
+	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+		err := os.MkdirAll(configPath, 0755)
+		if err != nil {
+			return "", err
+		}
+	}
+
+	return configPath, nil
 }

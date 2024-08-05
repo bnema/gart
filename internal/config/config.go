@@ -7,34 +7,33 @@ import (
 	"github.com/pelletier/go-toml"
 )
 
-// LoadConfig loads the config.toml file and returns a map of strings
-func LoadConfig(configPath string) (map[string]string, error) {
-	data, err := os.ReadFile(configPath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, nil
-		}
-		fmt.Printf("Failed to read config file: %v\n", err)
-		return nil, err
-	}
-	var config map[string]string
-	err = toml.Unmarshal(data, &config)
-
-	return config, err
+// Config represents the structure of the entire configuration file
+type Config struct {
+	Dotfiles map[string]string `toml:"dotfiles"`
 }
 
-func SaveConfig(ConfigFilePath string, dotfiles map[string]string) error {
-	data, err := toml.Marshal(dotfiles)
+// Dotfile represents the structure of one dotfile entry
+// example: kitty = "/home/user/.config/kitty"
+type Dotfile struct {
+	Name string `toml:"name"`
+	Path string `toml:"path"`
+}
+
+func LoadConfig(configPath string) (Config, error) {
+	var config Config
+	_, err := toml.LoadFile(configPath)
 	if err != nil {
-		fmt.Printf("Error marshaling config: %v\n", err)
-		return err
+		return config, fmt.Errorf("error loading config file: %w", err)
 	}
 
-	err = os.WriteFile(ConfigFilePath, data, 0664)
+	return config, nil
+}
 
+func SaveConfig(configFilePath string, config Config) error {
+	data, err := toml.Marshal(config)
 	if err != nil {
-		fmt.Printf("Error saving config: %v\n", err)
+		return fmt.Errorf("error marshalling config: %w", err)
 	}
 
-	return nil
+	return os.WriteFile(configFilePath, data, 0664)
 }

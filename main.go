@@ -2,21 +2,33 @@ package main
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 
 	"github.com/bnema/Gart/internal/app"
+	"github.com/bnema/Gart/internal/config"
 	"github.com/bnema/Gart/internal/utils"
 	"github.com/spf13/cobra"
 )
 
 func main() {
-	configPath := utils.GetOSConfigPath()
+	configPath, err := utils.GetOSConfigPath()
+	if err != nil {
+		fmt.Println("Error getting the config path:", err)
+		return
+	}
 
 	app := &app.App{
 		ConfigFilePath: filepath.Join(configPath, "config.toml"),
 		StorePath:      filepath.Join(configPath, ".store"),
 	}
+
+	// Try to load the configuration file
+	config, configError := config.LoadConfig(app.ConfigFilePath)
+	app.Config = &config
+	app.ConfigError = configError
+
+	// Print the dotfiles
+	fmt.Printf("Dotfiles: %v\n", app.Config.Dotfiles)
 
 	var rootCmd = &cobra.Command{
 		Use:   "gart",
@@ -35,11 +47,11 @@ func main() {
 
 	var addCmd = &cobra.Command{
 		Use:   "add [path] [name]",
-		Short: "Add a new dotfile",
+		Short: "Add a new dotfile folder",
 		Run: func(cmd *cobra.Command, args []string) {
 			if len(args) == 0 {
-				// If no arguments are provided, start the form
-				app.RunAddForm()
+				// If no arguments are provided, show the usage
+				fmt.Println("Invalid arguments. Usage: add [path] opt:[name]")
 			} else if len(args) == 1 {
 				// If only the path is provided, use the last part of the path as the name
 				path := args[0]
@@ -62,13 +74,13 @@ func main() {
 		Run: func(cmd *cobra.Command, args []string) {
 			if len(args) == 0 {
 				// Update all dotfiles
-				for name, path := range app.ListModel.Dotfiles {
+				for name, path := range app.Config.Dotfiles {
 					app.RunUpdateView(name, path)
 				}
 			} else {
 				// Update a specific dotfile
 				name := args[0]
-				path, ok := app.ListModel.Dotfiles[name]
+				path, ok := app.Config.Dotfiles[name]
 				if !ok {
 					fmt.Printf("Dotfile '%s' not found.\n", name)
 					return
@@ -84,6 +96,14 @@ func main() {
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
-		os.Exit(1)
+
+		// Handle the error
+		if app.ConfigError != nil {
+			fmt.Println("Error reading the config file:", app.ConfigError)
+		}
+
+		// Exit with an error code
+		return
+
 	}
 }

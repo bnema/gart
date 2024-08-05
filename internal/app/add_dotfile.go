@@ -13,6 +13,7 @@ import (
 )
 
 func (app *App) AddDotfile(path, name string) {
+
 	// If the path starts with ~, replace it with the user's home directory
 	if strings.HasPrefix(path, "~") {
 		home, err := os.UserHomeDir()
@@ -103,7 +104,7 @@ func (app *App) AddDotfile(path, name string) {
 
 		// Start a new goroutine to save the configuration
 		go func() {
-			err := config.SaveConfig(app.ConfigFilePath, app.ListModel.Dotfiles)
+			err := config.SaveConfig(app.ConfigFilePath, *app.Config)
 			if err != nil {
 				fmt.Printf("Error saving configuration: %v\n", err)
 				return
@@ -114,22 +115,29 @@ func (app *App) AddDotfile(path, name string) {
 	} else {
 
 		cleanedPath := filepath.Clean(path)
+		fmt.Printf("Adding dotfile: %s\n", cleanedPath)
 
 		storePath := filepath.Join(app.StorePath, name)
+		fmt.Printf("Store path: %s\n", storePath)
+
 		err := system.CopyDirectory(cleanedPath, storePath)
 		if err != nil {
 			fmt.Printf("Error copying directory: %v\n", err)
 			return
 		}
 
-		app.ListModel.Dotfiles[name] = cleanedPath
-		err = config.SaveConfig(app.ConfigFilePath, app.ListModel.Dotfiles)
+		// Add the dotfile to the map of dotfiles
+		if app.Config.Dotfiles == nil {
+			app.Config.Dotfiles = make(map[string]string)
+		}
+		app.Config.Dotfiles[name] = cleanedPath
+
+		// Save the updated configuration
+		err = config.SaveConfig(app.ConfigFilePath, *app.Config)
 		if err != nil {
 			fmt.Printf("Error saving configuration: %v\n", err)
 			return
 		}
-
-		// TODO: Create a state with git with the date
 
 		fmt.Printf("Dotfile added: %s\n", name)
 	}

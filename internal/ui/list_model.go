@@ -1,6 +1,9 @@
 package ui
 
 import (
+	"fmt"
+
+	"github.com/bnema/Gart/internal/config"
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -11,10 +14,11 @@ type ListModel struct {
 	Dotfiles map[string]string
 }
 
-func InitListModel(dotfiles map[string]string) ListModel {
+func InitListModel(config config.Config) ListModel {
+	fmt.Printf("Dotfiles: %v\n", config.Dotfiles)
 
 	var rows []table.Row
-	for name, path := range dotfiles {
+	for name, path := range config.Dotfiles {
 		rows = append(rows, table.Row{name, path})
 	}
 
@@ -44,7 +48,7 @@ func InitListModel(dotfiles map[string]string) ListModel {
 
 	return ListModel{
 		Table:    t,
-		Dotfiles: dotfiles,
+		Dotfiles: config.Dotfiles,
 	}
 }
 

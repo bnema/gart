@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 
@@ -17,22 +18,8 @@ type App struct {
 	AddModel       *ui.AddModel
 	ConfigFilePath string
 	StorePath      string
-}
-
-// RunAddForm is the function that runs the add (new) dotfile form
-func (app *App) RunAddForm() {
-	model := ui.InitAddModel()
-	if finalModel, err := tea.NewProgram(model).Run(); err == nil {
-		finalAddModel, ok := finalModel.(ui.AddModel)
-		if ok && finalAddModel.Inputs[0].Value() != "" && finalAddModel.Inputs[1].Value() != "" {
-			app.AddDotfile(finalAddModel.Inputs[0].Value(), finalAddModel.Inputs[1].Value())
-		} else {
-			fmt.Println("Error: invalid inputs")
-		}
-	} else {
-		fmt.Println("Error running program:", err)
-		os.Exit(1)
-	}
+	Config         *config.Config
+	ConfigError    error
 }
 
 // RunUpdateView is the function that runs the update (edit) dotfile view
@@ -66,10 +53,15 @@ func (app *App) RunUpdateView(name, path string) {
 }
 
 func (app *App) RunListView() {
-	// We need to retreive the dotfiles list from the config file
-	dotfiles := app.GetDotfilesList()
+	// We need to load the config before we can run the list view
+	config, err := config.LoadConfig(app.ConfigFilePath)
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	model := ui.InitListModel(dotfiles)
+	app.Config = &config
+
+	model := ui.InitListModel(*app.Config)
 	if finalModel, err := tea.NewProgram(model).Run(); err == nil {
 		finalListModel, ok := finalModel.(ui.ListModel)
 		if ok {
@@ -82,16 +74,4 @@ func (app *App) RunListView() {
 		fmt.Println("Erreur lors de l'exécution du programme :", err)
 		os.Exit(1)
 	}
-}
-
-// GetDotfilesList returns the dotfiles list from the config.toml file (after line [[dotfiles]])
-func (app *App) GetDotfilesList() map[string]string {
-	dotfiles, err := config.LoadConfig(app.ConfigFilePath)
-	if err != nil {
-		fmt.Printf("Erreur lors du chargement du fichier de configuration : %v\n", err)
-		os.Exit(1)
-	}
-
-	return dotfiles
-
 }
