@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 
 	"github.com/bnema/Gart/internal/app"
-	"github.com/bnema/Gart/internal/config"
 	"github.com/bnema/Gart/internal/utils"
 	"github.com/spf13/cobra"
 )
@@ -22,22 +21,21 @@ func main() {
 		StorePath:      filepath.Join(configPath, ".store"),
 	}
 
-	// Try to load the configuration file
-	config, configError := config.LoadConfig(app.ConfigFilePath)
-	app.Config = &config
-	app.ConfigError = configError
+	// Load the config
+	err = app.LoadConfig()
+	if err != nil {
+		fmt.Println("Error loading the config:", err)
+		return
+	}
 
-	// Print the dotfiles
-	fmt.Printf("Dotfiles: %v\n", app.Config.Dotfiles)
-
-	var rootCmd = &cobra.Command{
+	rootCmd := &cobra.Command{
 		Use:   "gart",
 		Short: "Gart is a dotfile manager",
 		Long:  `Gart is a command-line tool for managing dotfiles.`,
 	}
 
 	// Show at root level the list of dotfiles
-	var listCmd = &cobra.Command{
+	listCmd := &cobra.Command{
 		Use:   "list",
 		Short: "List all dotfiles",
 		Run: func(cmd *cobra.Command, args []string) {
@@ -45,7 +43,7 @@ func main() {
 		},
 	}
 
-	var addCmd = &cobra.Command{
+	addCmd := &cobra.Command{
 		Use:   "add [path] [name]",
 		Short: "Add a new dotfile folder",
 		Run: func(cmd *cobra.Command, args []string) {
@@ -68,7 +66,7 @@ func main() {
 		},
 	}
 
-	var updateCmd = &cobra.Command{
+	updateCmd := &cobra.Command{
 		Use:   "update [name]",
 		Short: "Update a dotfile",
 		Run: func(cmd *cobra.Command, args []string) {

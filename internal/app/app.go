@@ -2,9 +2,9 @@ package app
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
+	"sync"
 
 	"github.com/bnema/Gart/internal/config"
 	"github.com/bnema/Gart/internal/system"
@@ -20,6 +20,7 @@ type App struct {
 	StorePath      string
 	Config         *config.Config
 	ConfigError    error
+	mu             sync.RWMutex
 }
 
 // RunUpdateView is the function that runs the update (edit) dotfile view
@@ -53,13 +54,12 @@ func (app *App) RunUpdateView(name, path string) {
 }
 
 func (app *App) RunListView() {
-	// We need to load the config before we can run the list view
-	config, err := config.LoadConfig(app.ConfigFilePath)
-	if err != nil {
-		log.Fatal(err)
+	// We need to list the dotfiles before we can display them
+	dotfiles := app.GetDotfiles()
+	if len(dotfiles) == 0 {
+		fmt.Println("No dotfiles found. Please add some dotfiles first.")
+		return
 	}
-
-	app.Config = &config
 
 	model := ui.InitListModel(*app.Config)
 	if finalModel, err := tea.NewProgram(model).Run(); err == nil {
@@ -74,4 +74,30 @@ func (app *App) RunListView() {
 		fmt.Println("Erreur lors de l'exécution du programme :", err)
 		os.Exit(1)
 	}
+}
+
+func (app *App) LoadConfig() error {
+	app.mu.Lock()
+	defer app.mu.Unlock()
+
+	dotfiles, err := config.LoadDotfilesConfig(app.ConfigFilePath)
+	if err != nil {
+		app.ConfigError = err
+		return err
+	}
+
+	app.Config = &config.Config{
+		Dotfiles: dotfiles,
+	}
+	return nil
+}
+
+func (app *App) GetDotfiles() map[string]string {
+	app.mu.RLock()
+	defer app.mu.RUnlock()
+	return app.Config.Dotfiles
+}
+
+func (app *App) ReloadConfig() error {
+	return app.LoadConfig()
 }
