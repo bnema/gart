@@ -51,7 +51,11 @@ func (app *App) addDotfileDir() {
 		return
 	}
 
-	app.updateConfig(cleanedPath)
+	err = app.updateConfig(cleanedPath)
+	if err != nil {
+		fmt.Printf("Error updating config: %v\n", err)
+		return
+	}
 }
 
 // updateConfig updates the config file with the new dotfile
