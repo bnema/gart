@@ -56,13 +56,23 @@ func main() {
 				path := args[0]
 				name := filepath.Base(path)
 
-				app.AddDotfile(path, name)
+				err := app.AddDotfile(path, name)
+				if err != nil {
+					fmt.Printf("Error adding dotfile: %v\n", err)
+					return
+				}
+
 			} else if len(args) == 2 {
 				// If both path and name are provided, use them as is
 				path := args[0]
 				name := args[1]
 
-				app.AddDotfile(path, name)
+				err := app.AddDotfile(path, name)
+				if err != nil {
+					fmt.Printf("Error adding dotfile: %v\n", err)
+					return
+				}
+
 			} else {
 				fmt.Println("Invalid arguments. Usage: add [path] opt:[name]")
 			}
