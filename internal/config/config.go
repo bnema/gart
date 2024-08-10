@@ -9,12 +9,17 @@ import (
 
 // Config represents the structure of the entire configuration file
 type Config struct {
-	Dotfiles map[string]string `toml:"dotfiles"`
+	ConfigFilePath string
+	Dotfiles       map[string]string `toml:"dotfiles"`
+
 	// Autres champs de configuration...
 }
 
 // Dotfile represents the structure of one dotfile entry
 // example: kitty = "/home/user/.config/kitty"
+func (c *Config) GetConfigFilePath() string {
+	return c.ConfigFilePath
+}
 
 func LoadDotfilesConfig(configPath string) (map[string]string, error) {
 	tree, err := toml.LoadFile(configPath)

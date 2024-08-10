@@ -1,10 +1,9 @@
-package utils
+package system
 
 import (
 	"os"
 	"path/filepath"
 
-	"github.com/bnema/Gart/internal/system"
 	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
@@ -33,7 +32,7 @@ func DiffFiles(origin, dest string) (bool, error) {
 		if os.IsNotExist(err) {
 			// The file exists in path1 but not in path2
 			// Copy the file from path1 to path2
-			if err := system.CopyFile(origin, dest); err != nil {
+			if err := CopyFile(origin, dest); err != nil {
 				return false, err
 			}
 			return true, nil
@@ -80,7 +79,7 @@ func DiffFiles(origin, dest string) (bool, error) {
 			diffs := dmp.DiffMain(string(contentOrig), string(contentDest), false)
 			if len(diffs) > 1 {
 				// Differences found, copy the file from path1 to path2
-				if err := system.CopyFile(origin, dest); err != nil {
+				if err := CopyFile(origin, dest); err != nil {
 					return false, err
 				}
 				return true, nil
