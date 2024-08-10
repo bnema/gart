@@ -1,4 +1,4 @@
-package utils
+package system
 
 import (
 	"os"
@@ -11,7 +11,7 @@ func GetOSConfigPath() (string, error) {
 
 	switch runtime.GOOS {
 	case "windows":
-		configPath = filepath.Join(os.Getenv("APPDATA"), "Gart")
+		configPath = filepath.Join(os.Getenv("APPDATA"), "gart")
 	case "linux", "darwin":
 		configPath = filepath.Join(os.Getenv("HOME"), ".config", "gart")
 	default:

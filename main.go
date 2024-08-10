@@ -4,13 +4,14 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/bnema/Gart/internal/app"
-	"github.com/bnema/Gart/internal/utils"
+	"github.com/bnema/gart/internal/app"
+	"github.com/bnema/gart/internal/system"
+	"github.com/bnema/gart/internal/ui"
 	"github.com/spf13/cobra"
 )
 
 func main() {
-	configPath, err := utils.GetOSConfigPath()
+	configPath, err := system.GetOSConfigPath()
 	if err != nil {
 		fmt.Println("Error getting the config path:", err)
 		return
@@ -18,7 +19,7 @@ func main() {
 
 	app := &app.App{
 		ConfigFilePath: filepath.Join(configPath, "config.toml"),
-		StorePath:      filepath.Join(configPath, ".store"),
+		StoragePath:    filepath.Join(configPath, ".store"),
 	}
 
 	// Load the config
@@ -39,7 +40,7 @@ func main() {
 		Use:   "list",
 		Short: "List all dotfiles",
 		Run: func(cmd *cobra.Command, args []string) {
-			app.RunListView()
+			ui.RunListView(app)
 		},
 	}
 
@@ -54,11 +55,13 @@ func main() {
 				// If only the path is provided, use the last part of the path as the name
 				path := args[0]
 				name := filepath.Base(path)
+
 				app.AddDotfile(path, name)
 			} else if len(args) == 2 {
 				// If both path and name are provided, use them as is
 				path := args[0]
 				name := args[1]
+
 				app.AddDotfile(path, name)
 			} else {
 				fmt.Println("Invalid arguments. Usage: add [path] opt:[name]")
@@ -70,10 +73,16 @@ func main() {
 		Use:   "update [name]",
 		Short: "Update a dotfile",
 		Run: func(cmd *cobra.Command, args []string) {
+			updateDotfile := func(name, path string) {
+				app.Dotfile.Name = name
+				app.Dotfile.Path = path
+				ui.RunUpdateView(app)
+			}
+
 			if len(args) == 0 {
 				// Update all dotfiles
 				for name, path := range app.Config.Dotfiles {
-					app.RunUpdateView(name, path)
+					updateDotfile(name, path)
 				}
 			} else {
 				// Update a specific dotfile
@@ -83,7 +92,7 @@ func main() {
 					fmt.Printf("Dotfile '%s' not found.\n", name)
 					return
 				}
-				app.RunUpdateView(name, path)
+				updateDotfile(name, path)
 			}
 		},
 	}
