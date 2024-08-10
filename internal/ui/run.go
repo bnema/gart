@@ -13,30 +13,25 @@ import (
 // RunUpdateView is the function that runs the update (edit) dotfile view
 func RunUpdateView(app *app.App) {
 	storePath := filepath.Join(app.StoragePath, app.Dotfile.Name)
-
 	// if dir not exist, Create the necessary directories in storePath if they don't exist
 	_, err := os.Stat(storePath)
 	if os.IsNotExist(err) {
-
 		err := system.CopyDirectory(app.Dotfile.Path, storePath)
 		if err != nil {
 			fmt.Printf("Error creating directories in storePath: %v\n", err)
 			return
-
 		}
 	}
-
 	changed, err := system.DiffFiles(app.Dotfile.Path, storePath)
 	if err != nil {
 		fmt.Printf("Error comparing dotfiles: %v\n", err)
 		return
 	}
-
 	if changed {
-		fmt.Printf("Changes detected in '%s'. Saving the updated dotfiles.\n", app.Dotfile.Name)
+		fmt.Println(changedStyle.Render(fmt.Sprintf("Changes detected in '%s'. Saving the updated dotfiles.", app.Dotfile.Name)))
 		// Logic to save the modified files
 	} else {
-		fmt.Printf("No changes detected in '%s' since the last update.\n", app.Dotfile.Name)
+		fmt.Println(unchangedStyle.Render(fmt.Sprintf("No changes detected in '%s' since the last update.", app.Dotfile.Name)))
 	}
 }
 
