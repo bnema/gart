@@ -3,54 +3,39 @@
 Gart is a command-line tool written in Go that helps you manage and sync your dotfiles across different systems. With Gart, you can easily keep your configuration files up to date and maintain a consistent setup across multiple machines.
 
 ## Features
-- Automatically detects changes in your dotfiles
-- Syncs dotfiles between your local system and a designated store directory
-- Supports copying entire directories and preserving file modes
-- Provides a simple and intuitive command-line interface
-- Auto-creates the configuration file if it doesn't exist
-- Allows adding new dotfiles to the configuration
-- Lists all the dotfiles currently being managed in a sexy table.
+- **Easy Addition**: Add a dotfile directory to Gart with a single command (e.g., `gart add ~/.config/nvim`)
+- **Automatic Updates**: Use the update command to detect changes in your dotfiles and backup them automatically (e.g., `gart update`)
+- **Quick Overview**: List select and remove the dotfiles currently being managed with `gart list`
+- **Flexible Naming**: Optionally assign custom names to your dotfiles for easier management
 
-## Roadmap
-- [ ] Delete/Unfollow from the ui table
-- [ ] A watcher for changes in the dotfiles (for services like systemd).
-- [ ] Create a state with git after each successful update
-- [x] Beta: Lazy wildcard add (Ex: ~/.*)
-- [x] Default OS configuration directory storage (AppData, ~/.config, etc.)
-- [x] Add a quick one liner with flags gart add ~/.config/nvim
 ## Installation
 
 ### Prerequisites
 
 - Go >= 1.22
 
-### Installing via Makefile
+### Option 1: One-liner Makefile Installation
+You can install Gart using this one-liner, which clones the repository, builds the binary, and installs it:
 
-Clone this repository:
 ```bash
-git clone https://github.com/bnema/gart.git
+git clone https://github.com/bnema/gart.git && cd gart && make && sudo make install
 ```
+   Note: This method requires sudo privileges to move the binary to the /usr/bin directory.
 
-Navigate to the project directory:
-```bash
-cd gart
+### Option 2: Installing with Go Install
+Alternatively, you can install Gart directly using Go's install command:
 ```
-
-1. Build and install the binary using the provided Makefile:
-```bash
-make && sudo make install
+go install github.com/bnema/gart@latest
 ```
-   Note: This step requires sudo privileges to move the binary to the `/usr/bin` directory.
+This will install the latest version of Gart to your `$GOPATH/bin` directory. Make sure this directory is in your system's PATH to run Gart from anywhere.
 
 ## Usage
 
-To add a new dotfile to the configuration, use the `add` command to display the text inputs for the path and the name or simply use a one liner
+To add a new dotfile to the configuration, use the `add` command followed by the path to the dotfile and the name (optional)
 ```
-gart add 
-```
-or 
-```
-gart add ~/.config/nvim 
+gart add ~/.config/nvim
+or
+gart add ~/.config/hypr Hyprland
 ```
 
 To update a specific dotfile, use the `update` command followed by the name of the dotfile:
@@ -81,7 +66,13 @@ nvim = "~/.config/nvim"
 zsh = "~/.zshrc"
 ```
 
+## Roadmap
+- [ ] Allow adding a single file
+- [ ] Create a state with git after each detected change
+- [ ] Custom store set in the config file
+- [ ] Remove command to remove a dotfile from the configuration
+- [ ] Status command to display the status of all the dotfiles
+
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
-
