@@ -17,7 +17,12 @@ func (app *App) AddDotfile(path string, name string) error {
 	app.Dotfile.Name = name
 	app.Dotfile.Path = path
 
-	app.addDotfileDir()
+	// Check if the path is a directory
+	if isDir(path) {
+		app.addDotfileDir()
+	} else {
+		app.addDotfileFile()
+	}
 
 	return nil
 }
@@ -58,11 +63,30 @@ func (app *App) addDotfileDir() {
 	}
 }
 
+// addDotfileFile adds the dotfile file to the storage
+func (app *App) addDotfileFile() {
+	path := app.Dotfile.Path
+	name := filepath.Base(app.Dotfile.Name) // Use only the base name of the file
+	fmt.Printf("Dotfile name: %s\n", name)
+	cleanedPath := filepath.Clean(path)
+	fmt.Printf("Adding dotfile: %s\n", cleanedPath)
+	storePath := filepath.Join(app.StoragePath, name)
+	fmt.Printf("Store path: %s\n", storePath)
+	err := system.CopyFile(cleanedPath, storePath)
+	if err != nil {
+		fmt.Printf("Error copying file: %v\n", err)
+		return
+	}
+	err = app.updateConfig(cleanedPath)
+	if err != nil {
+		fmt.Printf("Error updating config: %v\n", err)
+		return
+	}
+}
+
 // updateConfig updates the config file with the new dotfile
 func (app *App) updateConfig(cleanedPath string) error {
 
-	// Add the dotfile to the array of dotfiles
-	// TODO: rewrite this
 	app.Config.Dotfiles[app.Dotfile.Name] = cleanedPath
 
 	err := config.AddDotfileToConfig(app.ConfigFilePath, app.Dotfile.Name, cleanedPath)
@@ -76,4 +100,13 @@ func (app *App) updateConfig(cleanedPath string) error {
 
 	fmt.Printf("Dotfile added: %s\n", app.Dotfile.Name)
 	return nil
+}
+
+// isDir checks if a path is a directory and return a boolean
+func isDir(path string) bool {
+	fileInfo, err := os.Stat(path)
+	if err != nil {
+		return false
+	}
+	return fileInfo.IsDir()
 }
