@@ -12,6 +12,7 @@ Gart is a command-line tool written in Go that helps you manage and sync your do
 
 ### Prerequisites
 
+- Linux 
 - Go >= 1.22
 
 ### Option 1: One-liner Makefile Installation
