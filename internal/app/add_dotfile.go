@@ -66,12 +66,21 @@ func (app *App) addDotfileDir() {
 // addDotfileFile adds the dotfile file to the storage
 func (app *App) addDotfileFile() {
 	path := app.Dotfile.Path
-	name := filepath.Base(app.Dotfile.Name) // Use only the base name of the file
-	fmt.Printf("Dotfile name: %s\n", name)
 	cleanedPath := filepath.Clean(path)
 	fmt.Printf("Adding dotfile: %s\n", cleanedPath)
-	storePath := filepath.Join(app.StoragePath, name)
+
+	// Use filepath.Base to get the filename with extension
+	fileName := filepath.Base(cleanedPath)
+	storePath := filepath.Join(app.StoragePath, fileName)
+
 	fmt.Printf("Store path: %s\n", storePath)
+
+	// Ensure the store directory exists
+	if err := os.MkdirAll(app.StoragePath, os.ModePerm); err != nil {
+		fmt.Printf("Error creating store directory: %v\n", err)
+		return
+	}
+
 	err := system.CopyFile(cleanedPath, storePath)
 	if err != nil {
 		fmt.Printf("Error copying file: %v\n", err)
