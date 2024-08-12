@@ -50,22 +50,6 @@ func CopyDirectory(src, dst string) error {
 }
 
 func CopyFile(src, dst string) error {
-	// Ensure the destination directory exists
-	dstDir := filepath.Dir(dst)
-	if err := os.MkdirAll(dstDir, os.ModePerm); err != nil {
-		return fmt.Errorf("error creating destination directory: %v", err)
-	}
-
-	// Check if destination already exists
-	if _, err := os.Stat(dst); err == nil {
-		// Destination exists, remove it if it's a directory
-		if info, err := os.Stat(dst); err == nil && info.IsDir() {
-			if err := os.RemoveAll(dst); err != nil {
-				return fmt.Errorf("error removing existing directory at destination: %v", err)
-			}
-		}
-	}
-
 	// Open the source file
 	srcFile, err := os.Open(src)
 	if err != nil {

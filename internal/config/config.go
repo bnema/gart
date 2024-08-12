@@ -10,17 +10,17 @@ import (
 // Config represents the structure of the entire configuration file
 type Config struct {
 	ConfigFilePath string
+	StoragePath    string
+	GitEnabled     bool
 	Dotfiles       map[string]string `toml:"dotfiles"`
-
-	// Autres champs de configuration...
 }
 
-// Dotfile represents the structure of one dotfile entry
-// example: kitty = "/home/user/.config/kitty"
+// GetConfigFilePath returns the path to the config file
 func (c *Config) GetConfigFilePath() string {
 	return c.ConfigFilePath
 }
 
+// LoadDotfilesConfig loads the dotfiles from the config file
 func LoadDotfilesConfig(configPath string) (map[string]string, error) {
 	tree, err := toml.LoadFile(configPath)
 	if err != nil {
@@ -44,6 +44,7 @@ func LoadDotfilesConfig(configPath string) (map[string]string, error) {
 	return dotfiles, nil
 }
 
+// AddDotfileToConfig adds a new dotfile to the config file
 func AddDotfileToConfig(configPath string, name, path string) error {
 	tree, err := toml.LoadFile(configPath)
 	if err != nil {
@@ -77,7 +78,7 @@ func AddDotfileToConfig(configPath string, name, path string) error {
 	return nil
 }
 
-// SaveConfig should
+// SaveConfig saves the config to the file
 func SaveConfig(configFilePath string, config Config) error {
 	data, err := toml.Marshal(config)
 	if err != nil {
