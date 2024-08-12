@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/bnema/gart/internal/app"
 	"github.com/bnema/gart/internal/system"
@@ -56,7 +58,20 @@ func main() {
 				path := args[0]
 				name := filepath.Base(path)
 
-				err := app.AddDotfile(path, name)
+				// In case of file use the file name without extension
+				// Check if the path is a file
+				fileInfo, err := os.Stat(path)
+				if err != nil {
+					fmt.Printf("Error accessing path: %v\n", err)
+					return
+				}
+
+				if !fileInfo.IsDir() {
+					// If it's a file, use the file name without extension
+					name = strings.TrimSuffix(name, filepath.Ext(name))
+				}
+
+				err = app.AddDotfile(path, name)
 				if err != nil {
 					fmt.Printf("Error adding dotfile: %v\n", err)
 					return
