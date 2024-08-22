@@ -1,9 +1,10 @@
 package system
 
 import (
-	"github.com/sergi/go-diff/diffmatchpatch"
 	"os"
 	"path/filepath"
+
+	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
 // DiffFiles compares files or directories at origin and dest paths.
@@ -46,26 +47,70 @@ func diffRecursive(origin, dest string, dmp *diffmatchpatch.DiffMatchPatch) (boo
 
 // diffDirectories compares the contents of two directories.
 func diffDirectories(origin, dest string, dmp *diffmatchpatch.DiffMatchPatch) (bool, error) {
-	files, err := os.ReadDir(origin)
+	originFiles, err := os.ReadDir(origin)
+	if err != nil {
+		return false, err
+	}
+
+	destFiles, err := os.ReadDir(dest)
 	if err != nil {
 		return false, err
 	}
 
 	changed := false
-	for _, file := range files {
+
+	// Create maps to track files in both directories
+	originMap := make(map[string]os.DirEntry)
+	destMap := make(map[string]os.DirEntry)
+
+	for _, file := range originFiles {
 		if file.Name() == ".git" || file.Name() == ".github" {
 			continue
 		}
-		originPath := filepath.Join(origin, file.Name())
-		destPath := filepath.Join(dest, file.Name())
-		fileChanged, err := diffRecursive(originPath, destPath, dmp)
-		if err != nil {
-			return false, err
+		originMap[file.Name()] = file
+	}
+
+	for _, file := range destFiles {
+		if file.Name() == ".git" || file.Name() == ".github" {
+			continue
 		}
-		if fileChanged {
+		destMap[file.Name()] = file
+	}
+
+	// Check for new or modified files in origin
+	for name, file := range originMap {
+		originPath := filepath.Join(origin, name)
+		destPath := filepath.Join(dest, name)
+
+		if _, exists := destMap[name]; !exists {
+			// File is new in origin
+			fileChanged, err := copyItem(originPath, destPath, file.IsDir())
+			if err != nil {
+				return false, err
+			}
+			changed = changed || fileChanged
+		} else {
+			// File exists in both, check for changes
+			fileChanged, err := diffRecursive(originPath, destPath, dmp)
+			if err != nil {
+				return false, err
+			}
+			changed = changed || fileChanged
+		}
+	}
+
+	// Check for deleted files
+	for name := range destMap {
+		if _, exists := originMap[name]; !exists {
+			// File exists in dest but not in origin, so it was deleted
+			err := os.RemoveAll(filepath.Join(dest, name))
+			if err != nil {
+				return false, err
+			}
 			changed = true
 		}
 	}
+
 	return changed, nil
 }
 
