@@ -9,6 +9,7 @@ import (
 	"github.com/bnema/gart/internal/app"
 	"github.com/bnema/gart/internal/system"
 	"github.com/bnema/gart/internal/ui"
+	"github.com/bnema/gart/internal/version"
 	"github.com/spf13/cobra"
 )
 
@@ -122,6 +123,15 @@ func main() {
 		},
 	}
 
+	versionCmd := &cobra.Command{
+		Use:   "version",
+		Short: "Print the version number of Gart",
+		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Println(version.Full())
+		},
+	}
+
+	rootCmd.AddCommand(versionCmd)
 	rootCmd.AddCommand(addCmd)
 	rootCmd.AddCommand(updateCmd)
 	rootCmd.AddCommand(listCmd)
