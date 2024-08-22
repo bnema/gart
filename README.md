@@ -68,11 +68,12 @@ zsh = "~/.zshrc"
 ```
 
 ## Roadmap
-- [ ] Allow adding a single file
+- [x] Allow adding a single file
 - [ ] Create a state with git after each detected change
 - [ ] Custom store set in the config file
-- [ ] Remove command to remove a dotfile from the configuration
+- [x] Remove a dotfile from the list view
 - [ ] Status command to display the status of all the dotfiles
+- [x] Version command
 
 ## License
 
