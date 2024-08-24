@@ -45,10 +45,10 @@ func (app *App) addDotfileDir() {
 	path := app.Dotfile.Path
 	name := app.Dotfile.Name
 	cleanedPath := filepath.Clean(path)
-	fmt.Printf("Adding dotfile: %s\n", cleanedPath)
+	fmt.Printf("Adding dotfiles: %s\n", cleanedPath)
 
 	storePath := filepath.Join(app.StoragePath, name)
-	fmt.Printf("Store path: %s\n", storePath)
+	fmt.Printf("Storage path: %s\n", storePath)
 
 	err := system.CopyDirectory(cleanedPath, storePath)
 	if err != nil {
@@ -73,7 +73,7 @@ func (app *App) addDotfileFile() {
 	fileName := filepath.Base(cleanedPath)
 	storePath := filepath.Join(app.StoragePath, fileName)
 
-	fmt.Printf("Store path: %s\n", storePath)
+	fmt.Printf("Storage path: %s\n", storePath)
 
 	// Ensure the store directory exists
 	if err := os.MkdirAll(app.StoragePath, os.ModePerm); err != nil {
@@ -107,7 +107,7 @@ func (app *App) updateConfig(cleanedPath string) error {
 		app.Config.Dotfiles = make(map[string]string)
 	}
 
-	fmt.Printf("Dotfile added: %s\n", app.Dotfile.Name)
+	fmt.Printf("%s added successfully!\n", app.Dotfile.Name)
 	return nil
 }
 
