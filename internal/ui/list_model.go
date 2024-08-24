@@ -12,12 +12,13 @@ import (
 )
 
 type ListModel struct {
-	App      *app.App
-	Table    table.Model
-	KeyMap   KeyMap
-	Dotfile  app.Dotfile
-	Dotfiles map[string]string
-	Footer   string
+	App           *app.App
+	Table         table.Model
+	KeyMap        KeyMap
+	Dotfile       app.Dotfile
+	Dotfiles      map[string]string
+	Footer        string
+	ConfirmRemove bool
 }
 
 type KeyMap struct {
@@ -74,18 +75,18 @@ func InitListModel(config config.Config, app *app.App) ListModel {
 	t.SetStyles(s)
 
 	return ListModel{
-		App:      app,
-		Table:    t,
-		KeyMap:   DefaultKeyMap(),
-		Dotfiles: config.Dotfiles,
-		Footer:   "Press 'r' to remove a dotfile or 'q' to quit",
+		App:           app,
+		Table:         t,
+		KeyMap:        DefaultKeyMap(),
+		Dotfiles:      config.Dotfiles,
+		Footer:        "Press 'r' to remove a dotfile or 'q' to quit",
+		ConfirmRemove: false,
 	}
 }
 
 func (m ListModel) Init() tea.Cmd {
 	return nil
 }
-
 func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
@@ -95,15 +96,33 @@ func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, m.KeyMap.Quit):
 			return m, tea.Quit
 		case key.Matches(msg, m.KeyMap.Esc):
-			return m, tea.Quit
+			if m.ConfirmRemove {
+				m.ConfirmRemove = false
+				m.Footer = "Removal cancelled. Press 'r' to remove a dotfile or 'q' to quit"
+			} else {
+				return m, tea.Quit
+			}
 		case key.Matches(msg, m.KeyMap.Remove):
-			return m.removeSelectedEntry()
+			if !m.ConfirmRemove {
+				m.ConfirmRemove = true
+				m.Footer = "Are you sure you want to remove this dotfile? (y/n)"
+			}
+		case msg.String() == "y" || msg.String() == "Y":
+			if m.ConfirmRemove {
+				return m.removeSelectedEntry()
+			}
+		case msg.String() == "n" || msg.String() == "N":
+			if m.ConfirmRemove {
+				m.ConfirmRemove = false
+				m.Footer = "Removal cancelled. Press 'r' to remove a dotfile or 'q' to quit"
+			}
 		}
 	}
 
 	m.Table, cmd = m.Table.Update(msg)
 	return m, cmd
 }
+
 func (m ListModel) removeSelectedEntry() (ListModel, tea.Cmd) {
 	selectedRow := m.Table.SelectedRow()
 	if len(selectedRow) > 0 {
@@ -113,7 +132,7 @@ func (m ListModel) removeSelectedEntry() (ListModel, tea.Cmd) {
 		// Remove the selected entry from the config
 		err := m.App.RemoveDotFile(path, name)
 		if err != nil {
-			m.Footer = fmt.Sprintf("Error removing dotfile: %s", err)
+			m.Footer = errorStyle.Render(fmt.Sprintf("Error removing dotfile: %s", err))
 			return m, nil
 		}
 
@@ -126,7 +145,8 @@ func (m ListModel) removeSelectedEntry() (ListModel, tea.Cmd) {
 			}
 		}
 
-		m.Footer = fmt.Sprintf("Dotfile '%s' removed successfully", name)
+		m.ConfirmRemove = false
+		m.Footer = successStyle.Render(fmt.Sprintf("Dotfile '%s' removed successfully", name))
 	}
 
 	return m, nil

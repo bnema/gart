@@ -17,4 +17,5 @@ var (
 	unchangedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
 	successStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("82"))
 	errorStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("196"))
+	alertStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("208"))
 )
