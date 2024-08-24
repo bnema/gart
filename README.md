@@ -8,11 +8,13 @@ Gart is a command-line tool written in Go that helps you manage and sync your do
 - **Quick Overview**: List select and remove the dotfiles currently being managed with `gart list`
 - **Flexible Naming**: Optionally assign custom names to your dotfiles for easier management
 
+![Demo Deploy](assets/demo.gif?raw=true)
+
 ## Installation
 
 ### Prerequisites
 
-- Linux 
+- Linux
 - Go >= 1.22
 
 ### Option 1: One-liner Makefile Installation
