@@ -65,7 +65,6 @@ func RunUpdateView(app *app.App) {
 }
 
 func RunListView(app *app.App) {
-	// We need to list the dotfiles before we can display them
 	dotfiles := app.GetDotfiles()
 	if len(dotfiles) == 0 {
 		fmt.Println("No dotfiles found. Please add some dotfiles first.")
@@ -73,16 +72,9 @@ func RunListView(app *app.App) {
 	}
 
 	model := InitListModel(*app.Config, app)
-	if finalModel, err := tea.NewProgram(model).Run(); err == nil {
-		finalListModel, ok := finalModel.(ListModel)
-		if ok {
-			fmt.Println(finalListModel.Table.View())
-		} else {
-			fmt.Println("Erreur lors de l'exécution du programme :", err)
-			os.Exit(1)
-		}
-	} else {
-		fmt.Println("Erreur lors de l'exécution du programme :", err)
+	p := tea.NewProgram(model)
+	if _, err := p.Run(); err != nil {
+		fmt.Printf("Error running program: %v\n", err)
 		os.Exit(1)
 	}
 }
