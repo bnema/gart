@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/bnema/gart/internal/app"
 	"github.com/bnema/gart/internal/config"
@@ -10,6 +11,10 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
+
+const defaultFooter = "Press 'r' to remove a dotfile or 'q' to quit"
+
+type defaultFooterMsg struct{}
 
 type ListModel struct {
 	App           *app.App
@@ -79,7 +84,7 @@ func InitListModel(config config.Config, app *app.App) ListModel {
 		Table:         t,
 		KeyMap:        DefaultKeyMap(),
 		Dotfiles:      config.Dotfiles,
-		Footer:        "Press 'r' to remove a dotfile or 'q' to quit",
+		Footer:        defaultFooter,
 		ConfirmRemove: false,
 	}
 }
@@ -117,13 +122,15 @@ func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.Footer = "Removal cancelled. Press 'r' to remove a dotfile or 'q' to quit"
 			}
 		}
+	case defaultFooterMsg:
+		m.Footer = defaultFooter
 	}
 
 	m.Table, cmd = m.Table.Update(msg)
 	return m, cmd
 }
 
-func (m ListModel) removeSelectedEntry() (ListModel, tea.Cmd) {
+func (m ListModel) removeSelectedEntry() (tea.Model, tea.Cmd) {
 	selectedRow := m.Table.SelectedRow()
 	if len(selectedRow) > 0 {
 		name := selectedRow[0]
@@ -147,9 +154,18 @@ func (m ListModel) removeSelectedEntry() (ListModel, tea.Cmd) {
 
 		m.ConfirmRemove = false
 		m.Footer = successStyle.Render(fmt.Sprintf("Dotfile '%s' removed successfully", name))
+
+		// Return the model with a command to clear the footer after 3 seconds
+		return m, clearFooterAfter(3 * time.Second)
 	}
 
 	return m, nil
+}
+
+func clearFooterAfter(d time.Duration) tea.Cmd {
+	return tea.Tick(d, func(t time.Time) tea.Msg {
+		return defaultFooterMsg{}
+	})
 }
 
 func (m ListModel) View() string {
