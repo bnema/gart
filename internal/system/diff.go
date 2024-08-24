@@ -103,7 +103,7 @@ func diffDirectories(origin, dest string, dmp *diffmatchpatch.DiffMatchPatch) (b
 	for name := range destMap {
 		if _, exists := originMap[name]; !exists {
 			// File exists in dest but not in origin, so it was deleted
-			err := os.RemoveAll(filepath.Join(dest, name))
+			err := RemoveDirectory(filepath.Join(dest, name))
 			if err != nil {
 				return false, err
 			}
@@ -144,7 +144,7 @@ func copyItem(origin, dest string, isDir bool) (bool, error) {
 
 // replaceItem removes the destination item and replaces it with the origin item.
 func replaceItem(origin, dest string, isDir bool) (bool, error) {
-	err := os.RemoveAll(dest)
+	err := RemoveDirectory(dest)
 	if err != nil {
 		return false, err
 	}

@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/bnema/gart/internal/system"
 	"github.com/pelletier/go-toml"
 )
 
@@ -82,7 +83,8 @@ func (app *App) RemoveDotFile(path string, name string) error {
 
 	dotfileStoragePath := filepath.Join(storagePath, storageItemName)
 
-	if err := os.RemoveAll(dotfileStoragePath); err != nil {
+	err = system.RemoveDirectory(dotfileStoragePath)
+	if err != nil {
 		return fmt.Errorf("error removing dotfile from storage: %w", err)
 	}
 
