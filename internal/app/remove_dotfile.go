@@ -63,6 +63,9 @@ func (app *App) RemoveDotFile(path string, name string) error {
 		return fmt.Errorf("dotfile with path '%s' or name '%s' not found in config", path, name)
 	}
 
+	// Store the name of the dotfile to be removed
+	removedDotfileName := keyToRemove
+
 	dotfilesTree.Delete(keyToRemove)
 
 	f, err := os.OpenFile(configFilePath, os.O_WRONLY|os.O_TRUNC, 0644)
@@ -86,6 +89,11 @@ func (app *App) RemoveDotFile(path string, name string) error {
 	err = system.RemoveDirectory(dotfileStoragePath)
 	if err != nil {
 		return fmt.Errorf("error removing dotfile from storage: %w", err)
+	}
+
+	// Commit the changes
+	if err := app.GitCommitChanges("Remove", removedDotfileName); err != nil {
+		return fmt.Errorf("error committing changes for removing %s: %w", removedDotfileName, err)
 	}
 
 	return nil

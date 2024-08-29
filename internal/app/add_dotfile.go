@@ -10,11 +10,11 @@ import (
 	"github.com/bnema/gart/internal/system"
 )
 
-func (app *App) AddDotfile(path string, name string) error {
+func (app *App) AddDotfile(path string, dotfileName string) error {
 	path = expandHomeDir(path)
 
 	// Update the dotfile path to the expanded path
-	app.Dotfile.Name = name
+	app.Dotfile.Name = dotfileName
 	app.Dotfile.Path = path
 
 	// Check if the path is a directory
@@ -22,6 +22,11 @@ func (app *App) AddDotfile(path string, name string) error {
 		app.addDotfileDir()
 	} else {
 		app.addDotfileFile()
+	}
+
+	// Commit changes
+	if err := app.GitCommitChanges("Add", dotfileName); err != nil {
+		return fmt.Errorf("error committing changes for %s: %w", dotfileName, err)
 	}
 
 	return nil
