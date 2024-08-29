@@ -7,6 +7,8 @@ import (
 	"strings"
 
 	"github.com/bnema/gart/internal/app"
+	"github.com/bnema/gart/internal/config"
+	"github.com/bnema/gart/internal/git"
 	"github.com/bnema/gart/internal/system"
 	"github.com/bnema/gart/internal/ui"
 	"github.com/bnema/gart/internal/version"
@@ -14,15 +16,52 @@ import (
 )
 
 func main() {
-	configPath, err := system.GetOSConfigPath()
+	_, configPath, err := system.GetConfigPaths()
 	if err != nil {
-		fmt.Println("Error getting the config path:", err)
+		fmt.Println("Error getting config paths:", err)
+		return
+	}
+
+	cfg, err := config.LoadConfig(configPath)
+	if err != nil {
+		fmt.Println("Error loading config:", err)
 		return
 	}
 
 	app := &app.App{
-		ConfigFilePath: filepath.Join(configPath, "config.toml"),
-		StoragePath:    filepath.Join(configPath, ".store"),
+		ConfigFilePath: cfg.Settings.ConfigFilePath,
+		StoragePath:    cfg.Settings.StoragePath,
+		Config:         cfg,
+	}
+
+	// Ensure the storage path exists
+	if err := os.MkdirAll(app.StoragePath, 0755); err != nil {
+		fmt.Printf("Error creating storage directory: %v\n", err)
+		return
+	}
+
+	gitInitialized := false
+	if !cfg.Settings.GitVersioning {
+		enableGit, err := system.PromptForGitVersioning()
+		if err != nil {
+			fmt.Println("Error prompting for Git versioning:", err)
+			return
+		}
+
+		if enableGit {
+			cfg.Settings.GitVersioning = true
+			if err := git.Init(app.StoragePath, cfg.Settings.Git.Branch); err != nil {
+				fmt.Printf("Error initializing Git repository: %v\n", err)
+				return
+			}
+			gitInitialized = true
+			fmt.Println("Git repository initialized successfully.")
+		}
+
+		if err := config.SaveConfig(configPath, cfg); err != nil {
+			fmt.Println("Error saving config:", err)
+			return
+		}
 	}
 
 	// Load the config
@@ -30,6 +69,15 @@ func main() {
 	if err != nil {
 		fmt.Println("Error loading the config:", err)
 		return
+	}
+
+	// If Git was just initialized, perform an initial commit
+	if gitInitialized {
+		if err := git.CommitChanges(app.StoragePath, "Initial commit", "", ""); err != nil {
+			fmt.Printf("Error performing initial commit: %v\n", err)
+		} else {
+			fmt.Println("Initial commit performed successfully.")
+		}
 	}
 
 	rootCmd := &cobra.Command{
@@ -97,18 +145,14 @@ func main() {
 
 	updateCmd := &cobra.Command{
 		Use:   "update [name]",
-		Short: "Update a dotfile",
+		Short: "Update a dotfile or all dotfiles",
 		Run: func(cmd *cobra.Command, args []string) {
-			updateDotfile := func(name, path string) {
-				app.Dotfile.Name = name
-				app.Dotfile.Path = path
-				ui.RunUpdateView(app)
-			}
-
 			if len(args) == 0 {
 				// Update all dotfiles
 				for name, path := range app.Config.Dotfiles {
-					updateDotfile(name, path)
+					app.Dotfile.Name = name
+					app.Dotfile.Path = path
+					ui.RunUpdateView(app)
 				}
 			} else {
 				// Update a specific dotfile
@@ -118,8 +162,11 @@ func main() {
 					fmt.Printf("Dotfile '%s' not found.\n", name)
 					return
 				}
-				updateDotfile(name, path)
+				app.Dotfile.Name = name
+				app.Dotfile.Path = path
+				ui.RunUpdateView(app)
 			}
+
 		},
 	}
 

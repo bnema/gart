@@ -58,6 +58,12 @@ func RunUpdateView(app *app.App) {
 			return
 		}
 
+		// Commit changes
+		if err := app.GitCommitChanges("Update", app.Dotfile.Name); err != nil {
+			fmt.Printf(" %s\n", errorStyle.Render(fmt.Sprintf("Error committing changes: %v", err)))
+			return
+		}
+
 		fmt.Printf(" %s\n", successStyle.Render("Success!"))
 	} else {
 		fmt.Println(unchangedStyle.Render(fmt.Sprintf("No changes detected in '%s' since the last update.", app.Dotfile.Name)))
