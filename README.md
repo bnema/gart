@@ -60,15 +60,44 @@ gart list
 This will display a list of all the dotfiles specified in the `config.toml` file.
 ## Configuration
 
-The `config.toml` file is automatically created by Gart if it doesn't exist. It allows you to specify the dotfiles you want to manage. Each entry in the file represents a dotfile, with the key being the name of the dotfile and the value being the path to the dotfile on your local system.
+Gart uses a `config.toml` file for configuration, which is automatically created in the default location (`$XDG_CONFIG_HOME/gart/config.toml`) if it doesn't exist. This file allows you to specify the dotfiles you want to manage and configure various settings.
+
+The configuration file is divided into two main sections: `[dotfiles]` and `[settings]`.
+
+### Dotfiles Section
+
+The `[dotfiles]` section lists the dotfiles you want to manage. Each entry represents a dotfile, with the key being the name of the dotfile and the value being the path to the dotfile on your local system.
 
 Example:
 
 ```toml
 [dotfiles]
-nvim = "~/.config/nvim"
-zsh = "~/.zshrc"
+alacritty = "/home/user/.config/alacritty"
+nvim = "/home/user/.config/nvim"
+starship = "/home/user/.config/starship.toml"
 ```
+
+### Settings Section
+
+The `[settings]` section contains global configuration options for Gart:
+
+```toml
+[settings]
+git_versioning = true
+storage_path = "/home/user/.config/gart/.store"
+
+[settings.git]
+branch = "custom-branch-name"
+commit_message_format = "{{ .Action }} {{ .Dotfile }}"
+```
+
+- `git_versioning`: Enables or disables Git versioning for your dotfiles.
+- `storage_path`: Sets the directory where Gart stores managed dotfiles.
+- `[settings.git]`: Subsection for Git-specific settings.
+  - `branch`: Specifies the Git branch to use for versioning. If not set, the default branch name will be the hostname of your machine.
+  - `commit_message_format`: Specifies the format of the commit message when updating a dotfile. The message is templated using Go's text/template package and has access to the following fields (for now):
+    - `.Action`: The action performed (e.g., "Added", "Updated", "Removed").
+    - `.Dotfile`: The name of the dotfile being updated.
 
 ## Roadmap
 - [x] Allow adding a single file
