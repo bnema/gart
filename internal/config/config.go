@@ -17,21 +17,15 @@ type Config struct {
 
 // SettingsConfig represents the general settings of the application
 type SettingsConfig struct {
-	ConfigFilePath string    `toml:"config_file_path"`
-	StoragePath    string    `toml:"storage_path"`
-	GitVersioning  bool      `toml:"git_versioning"`
-	Git            GitConfig `toml:"git"`
+	StoragePath   string    `toml:"storage_path"`
+	GitVersioning bool      `toml:"git_versioning"`
+	Git           GitConfig `toml:"git"`
 }
 
 // GitConfig represents the structure of the git configuration
 type GitConfig struct {
 	Branch              string `toml:"branch"`
 	CommitMessageFormat string `toml:"commit_message_format"`
-}
-
-// GetConfigFilePath returns the path to the config file
-func (c *Config) GetConfigFilePath() string {
-	return c.Settings.ConfigFilePath
 }
 
 // LoadConfig loads the configuration from the file
@@ -110,6 +104,8 @@ func createDefaultConfig(configPath string) (*Config, error) {
 
 	gartConfigDir := filepath.Join(xdgConfigHome, "gart")
 
+	configPath = filepath.Join(gartConfigDir, "config.toml")
+
 	branchName, err := system.GetHostname()
 	if err != nil {
 		branchName = "main"
@@ -117,9 +113,8 @@ func createDefaultConfig(configPath string) (*Config, error) {
 
 	config := &Config{
 		Settings: SettingsConfig{
-			ConfigFilePath: configPath,
-			StoragePath:    filepath.Join(gartConfigDir, ".store"),
-			GitVersioning:  false,
+			StoragePath:   filepath.Join(gartConfigDir, ".store"),
+			GitVersioning: false,
 			Git: GitConfig{
 				Branch:              branchName,
 				CommitMessageFormat: "{{.Action}} {{.Dotfile}}",

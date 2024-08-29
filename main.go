@@ -29,8 +29,8 @@ func main() {
 	}
 
 	app := &app.App{
-		ConfigFilePath: cfg.Settings.ConfigFilePath,
 		StoragePath:    cfg.Settings.StoragePath,
+		ConfigFilePath: configPath,
 		Config:         cfg,
 	}
 
