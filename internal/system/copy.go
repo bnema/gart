@@ -77,3 +77,16 @@ func CopyFile(src, dst string) error {
 	}
 	return os.Chmod(dst, srcInfo.Mode())
 }
+
+// CopyPath copies a file or directory from src to dst
+func CopyPath(src, dst string) error {
+	srcInfo, err := os.Stat(src)
+	if err != nil {
+		return fmt.Errorf("error getting source info: %w", err)
+	}
+
+	if srcInfo.IsDir() {
+		return CopyDirectory(src, dst)
+	}
+	return CopyFile(src, dst)
+}

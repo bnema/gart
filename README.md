@@ -3,10 +3,11 @@
 Gart is a command-line tool written in Go that helps you manage and sync your dotfiles across different systems. With Gart, you can easily keep your configuration files up to date and maintain a consistent setup across multiple machines.
 
 ## Features
-- **Easy Addition**: Add a dotfile directory to Gart with a single command (e.g., `gart add ~/.config/nvim`)
-- **Automatic Updates**: Use the update command to detect changes in your dotfiles and backup them automatically (e.g., `gart update`)
+- **Quick Addition**: Add a dotfile directory to Gart with a single command (e.g., `gart add ~/.config/nvim`)
+- **Easy sync**: Use the update command to detect changes in your dotfiles and backup them automatically (e.g., `gart update`)
 - **Quick Overview**: List select and remove the dotfiles currently being managed with `gart list`
 - **Flexible Naming**: Optionally assign custom names to your dotfiles for easier management
+- **Git Versioning:** Optional Git-based version control with templated, configurable commits and customizable branch names (default: hostname).
 
 ![Demo Deploy](assets/demo.gif?raw=true)
 
@@ -71,8 +72,8 @@ zsh = "~/.zshrc"
 
 ## Roadmap
 - [x] Allow adding a single file
-- [ ] Create a state with git after each detected change
-- [ ] Custom store set in the config file
+- [x] Create a state with git after each detected change
+- [x] Custom store set in the config file
 - [x] Remove a dotfile from the list view
 - [ ] Status command to display the status of all the dotfiles
 - [x] Version command
