@@ -26,7 +26,7 @@ func Execute(a *app.App) {
 
 	rootCmd.AddCommand(getVersionCmd())
 	rootCmd.AddCommand(getAddCmd())
-	rootCmd.AddCommand(getUpdateCmd())
+	rootCmd.AddCommand(getSyncCmd())
 	rootCmd.AddCommand(getListCmd())
 
 	if err := rootCmd.Execute(); err != nil {

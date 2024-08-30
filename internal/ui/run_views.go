@@ -11,7 +11,7 @@ import (
 )
 
 // RunUpdateView is the function that runs the update (edit) dotfile view
-func RunUpdateView(app *app.App) {
+func RunSyncView(app *app.App) {
 	sourcePath := app.Dotfile.Path
 
 	// Check if the source is a file or directory
