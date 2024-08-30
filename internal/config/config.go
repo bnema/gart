@@ -31,7 +31,7 @@ type GitConfig struct {
 // LoadConfig loads the configuration from the file
 func LoadConfig(configPath string) (*Config, error) {
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		return createDefaultConfig(configPath)
+		return nil, err
 	}
 
 	data, err := os.ReadFile(configPath)
@@ -91,8 +91,8 @@ func SaveConfig(configPath string, config *Config) error {
 	return os.WriteFile(configPath, data, 0664)
 }
 
-// createDefaultConfig creates a default configuration
-func createDefaultConfig(configPath string) (*Config, error) {
+// CreateDefaultConfig creates a default configuration
+func CreateDefaultConfig(configPath string) (*Config, error) {
 	xdgConfigHome := os.Getenv("XDG_CONFIG_HOME")
 	if xdgConfigHome == "" {
 		homeDir, err := os.UserHomeDir()
@@ -130,6 +130,8 @@ func createDefaultConfig(configPath string) (*Config, error) {
 	if err := SaveConfig(configPath, config); err != nil {
 		return nil, fmt.Errorf("error saving default config: %w", err)
 	}
+
+	fmt.Printf("Created default configuration at %s\n", configPath)
 
 	return config, nil
 }
