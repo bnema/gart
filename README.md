@@ -4,7 +4,7 @@ Gart is a command-line tool written in Go that helps you manage and sync your do
 
 ## Features
 - **Quick Addition**: Add a dotfile directory or a single file to Gart with a single command (e.g., `gart add ~/.config/zsh` or `gart add ~/.config/nvim/init.lua`)
-- **Easy sync**: Use the update command to detect changes in all your managed dotfiles and backup them automatically (e.g., `gart update` or `gart update nvim`)
+- **Easy sync**: Use the sync command to detect changes in all your managed dotfiles and backup them automatically (e.g., `gart sync` or for a single dotfile `gart sync nvim`)
 - **Simple Overview**: List, select and remove the dotfiles currently being managed with `gart list`
 - **Flexible Naming**: (Optional) assign custom names to your dotfiles for easier management (e.g., `gart add ~/.config/nvim nvim-backup`)
 - **Git Versioning:** (Optional) Git-based version control with templated, configurable commits and customizable branch names (default: hostname).
@@ -62,15 +62,15 @@ or
 gart add ~/.config/hypr Hyprland
 ```
 
-To update a specific dotfile, use the `update` command followed by the name of the dotfile:
+To update/synchronize a specific dotfile, use the `sync` command followed by the name of the dotfile:
 ```
-gart update nvim
+gart sync nvim
 ```
 This will detect changes in the specified dotfile and save the updated version to your designated store directory.
 
-To update all the dotfiles specified in the `config.toml` file, simply run:
+To sync all the dotfiles specified in the `config.toml` file, simply run:
 ```
-gart update
+gart sync
 ```
 
 To list all the dotfiles currently being managed by Gart, use the `list` command:
@@ -125,8 +125,12 @@ commit_message_format = "{{ .Action }} {{ .Dotfile }}"
 - [x] Create a state with git after each detected change
 - [x] Custom store set in the config file
 - [x] Remove a dotfile from the list view
-- [ ] Status command to display the status of all the dotfiles
 - [x] Version command
+- [ ] Status command to display the status of all the dotfiles (last commit, changes, etc.)
+- [ ] Remove command to remove a dotfile from the store
+- [ ] Update command to update Gart to the latest version
+- [ ] Add more templated fields for the commit message (e.g., date, time, etc.)
+
 
 ## License
 
