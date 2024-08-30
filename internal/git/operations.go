@@ -3,7 +3,9 @@ package git
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"text/template"
 )
 
@@ -73,4 +75,17 @@ func CommitChanges(path, commitMessageFormat, dotfileName, action string) error 
 	}
 
 	return nil
+}
+
+// RepoExists checks if a Git repository exists at the given path
+func RepoExists(path string) (bool, error) {
+	gitDir := filepath.Join(path, ".git")
+	_, err := os.Stat(gitDir)
+	if err == nil {
+		return true, nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return false, err
 }
