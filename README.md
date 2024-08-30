@@ -3,11 +3,11 @@
 Gart is a command-line tool written in Go that helps you manage and sync your dotfiles across different systems. With Gart, you can easily keep your configuration files up to date and maintain a consistent setup across multiple machines.
 
 ## Features
-- **Quick Addition**: Add a dotfile directory to Gart with a single command (e.g., `gart add ~/.config/nvim`)
-- **Easy sync**: Use the update command to detect changes in your dotfiles and backup them automatically (e.g., `gart update`)
-- **Quick Overview**: List select and remove the dotfiles currently being managed with `gart list`
-- **Flexible Naming**: Optionally assign custom names to your dotfiles for easier management
-- **Git Versioning:** Optional Git-based version control with templated, configurable commits and customizable branch names (default: hostname).
+- **Quick Addition**: Add a dotfile directory or a single file to Gart with a single command (e.g., `gart add ~/.config/zsh` or `gart add ~/.config/nvim/init.lua`)
+- **Easy sync**: Use the update command to detect changes in all your managed dotfiles and backup them automatically (e.g., `gart update` or `gart update nvim`)
+- **Simple Overview**: List, select and remove the dotfiles currently being managed with `gart list`
+- **Flexible Naming**: (Optional) assign custom names to your dotfiles for easier management (e.g., `gart add ~/.config/nvim nvim-backup`)
+- **Git Versioning:** (Optional) Git-based version control with templated, configurable commits and customizable branch names (default: hostname).
 
 ![Demo Deploy](assets/demo.gif?raw=true)
 
@@ -18,15 +18,35 @@ Gart is a command-line tool written in Go that helps you manage and sync your do
 - Linux
 - Go >= 1.22
 
-### Option 1: One-liner Makefile Installation
-You can install Gart using this one-liner, which clones the repository, builds the binary, and installs it:
+### Downloading the Binary
 
+**New**: Pre-built binaries for Linux (amd64 and arm64) are now available for each release. You can download them from the [Releases page](https://github.com/bnema/gart/releases).
+1. Extract the archive:
+   ```bash
+   tar -xzf gart_*_linux_*.tar.gz
+   ```
+2. Make the binary executable:
+   ```bash
+   chmod +x gart
+   ```
+3. Move the binary to a directory in your PATH:
+   ```bash
+   sudo mv gart /usr/local/bin/
+   or
+   sudo mv gart /usr/bin/
+   or
+   mv gart /home/user/.local/bin/
+   ```
+
+###  Building from Source
+
+You can install Gart using this one-liner, which clones the repository, builds the binary, and installs it:
 ```bash
 git clone https://github.com/bnema/gart.git && cd gart && make && sudo make install
 ```
    Note: This method requires sudo privileges to move the binary to the /usr/bin directory.
 
-### Option 2: Installing with Go Install
+### Installing with Go Install
 Alternatively, you can install Gart directly using Go's install command:
 ```
 go install github.com/bnema/gart@latest
@@ -58,6 +78,7 @@ To list all the dotfiles currently being managed by Gart, use the `list` command
 gart list
 ```
 This will display a list of all the dotfiles specified in the `config.toml` file.
+
 ## Configuration
 
 Gart uses a `config.toml` file for configuration, which is automatically created in the default location (`$XDG_CONFIG_HOME/gart/config.toml`) if it doesn't exist. This file allows you to specify the dotfiles you want to manage and configure various settings.
@@ -96,8 +117,8 @@ commit_message_format = "{{ .Action }} {{ .Dotfile }}"
 - `[settings.git]`: Subsection for Git-specific settings.
   - `branch`: Specifies the Git branch to use for versioning. If not set, the default branch name will be the hostname of your machine.
   - `commit_message_format`: Specifies the format of the commit message when updating a dotfile. The message is templated using Go's text/template package and has access to the following fields (for now):
-    - `.Action`: The action performed (e.g., "Added", "Updated", "Removed").
-    - `.Dotfile`: The name of the dotfile being updated.
+    - `.Action`: The action performed (e.g., "Add", "Update", "Remove").
+    - `.Dotfile`: The name of the dotfile being handled.
 
 ## Roadmap
 - [x] Allow adding a single file
