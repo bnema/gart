@@ -7,7 +7,6 @@ import (
 
 	"github.com/bnema/gart/internal/app"
 	"github.com/bnema/gart/internal/system"
-	tea "github.com/charmbracelet/bubbletea"
 )
 
 // RunUpdateView is the function that runs the update (edit) dotfile view
@@ -67,20 +66,5 @@ func RunSyncView(app *app.App) {
 		fmt.Printf(" %s\n", successStyle.Render("Success!"))
 	} else {
 		fmt.Println(unchangedStyle.Render(fmt.Sprintf("No changes detected in '%s' since the last update.", app.Dotfile.Name)))
-	}
-}
-
-func RunListView(app *app.App) {
-	dotfiles := app.GetDotfiles()
-	if len(dotfiles) == 0 {
-		fmt.Println("No dotfiles found. Please add some dotfiles first.")
-		return
-	}
-
-	model := InitListModel(*app.Config, app)
-	p := tea.NewProgram(model)
-	if _, err := p.Run(); err != nil {
-		fmt.Printf("Error running program: %v\n", err)
-		os.Exit(1)
 	}
 }
