@@ -6,13 +6,14 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/bnema/gart/internal/ui"
 	"github.com/spf13/cobra"
 )
 
 func getAddCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "add [path] [name]",
-		Short: "Add a new dotfile folder",
+		Short: "Add a new dotfile or folder",
 		Run: func(cmd *cobra.Command, args []string) {
 			if len(args) == 0 {
 				fmt.Println("Invalid arguments. Usage: add [path] opt:[name]")
@@ -31,9 +32,7 @@ func getAddCmd() *cobra.Command {
 				return
 			}
 
-			if err := appInstance.AddDotfile(path, name); err != nil {
-				fmt.Printf("Error adding dotfile: %v\n", err)
-			}
+			ui.RunAddDotfileView(appInstance, path, name)
 		},
 	}
 }
