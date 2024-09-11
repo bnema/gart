@@ -2,6 +2,8 @@ package ui
 
 import (
 	"fmt"
+	"os"
+	"sort"
 	"time"
 
 	"github.com/bnema/gart/internal/app"
@@ -12,7 +14,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-const defaultFooter = "Press 'r' to remove a dotfile or 'q' to quit"
+var defaultFooter = unchangedStyle.Render("Press 'r' to remove a dotfile or 'q' to quit")
 
 type defaultFooterMsg struct{}
 
@@ -30,6 +32,21 @@ type KeyMap struct {
 	Remove key.Binding
 	Quit   key.Binding
 	Esc    key.Binding
+}
+
+func RunListView(app *app.App) {
+	dotfiles := app.GetDotfiles()
+	if len(dotfiles) == 0 {
+		fmt.Println("No dotfiles found. Please add some dotfiles first.")
+		return
+	}
+
+	model := InitListModel(*app.Config, app)
+	p := tea.NewProgram(model)
+	if _, err := p.Run(); err != nil {
+		fmt.Printf("Error running program: %v\n", err)
+		os.Exit(1)
+	}
 }
 
 func DefaultKeyMap() KeyMap {
@@ -55,16 +72,24 @@ func InitListModel(config config.Config, app *app.App) ListModel {
 		rows = append(rows, table.Row{name, path})
 	}
 
+	// Sort the rows alphabetically by the Dotfiles column (index 0)
+	sort.Slice(rows, func(i, j int) bool {
+		return rows[i][0] < rows[j][0]
+	})
+
+	// Count the number of rows
+	rowCount := len(rows)
+
 	columns := []table.Column{
-		{Title: "Name", Width: 20},
-		{Title: "Path", Width: 50},
+		{Title: fmt.Sprintf("Dotfiles (%d)", rowCount), Width: 15},
+		{Title: unchangedStyle.Render("Origin Path"), Width: 50},
 	}
 
 	t := table.New(
 		table.WithColumns(columns),
 		table.WithRows(rows),
 		table.WithFocused(true),
-		table.WithHeight(7),
+		table.WithHeight(10),
 	)
 
 	s := table.DefaultStyles()
@@ -103,14 +128,14 @@ func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, m.KeyMap.Esc):
 			if m.ConfirmRemove {
 				m.ConfirmRemove = false
-				m.Footer = "Removal cancelled. Press 'r' to remove a dotfile or 'q' to quit"
+				m.Footer = unchangedStyle.Render("Removal cancelled. Press 'r' to remove a dotfile or 'q' to quit")
 			} else {
 				return m, tea.Quit
 			}
 		case key.Matches(msg, m.KeyMap.Remove):
 			if !m.ConfirmRemove {
 				m.ConfirmRemove = true
-				m.Footer = "Are you sure you want to remove this dotfile? (y/n)"
+				m.Footer = alertStyle.Render("Are you sure you want to remove the selected dotfile? (y/n)")
 			}
 		case msg.String() == "y" || msg.String() == "Y":
 			if m.ConfirmRemove {
@@ -119,7 +144,7 @@ func (m ListModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case msg.String() == "n" || msg.String() == "N":
 			if m.ConfirmRemove {
 				m.ConfirmRemove = false
-				m.Footer = "Removal cancelled. Press 'r' to remove a dotfile or 'q' to quit"
+				m.Footer = unchangedStyle.Render("Removal cancelled. Press 'r' to remove a dotfile or 'q' to quit")
 			}
 		}
 	case defaultFooterMsg:
@@ -152,6 +177,9 @@ func (m ListModel) removeSelectedEntry() (tea.Model, tea.Cmd) {
 			}
 		}
 
+		// Update the column title with the new count
+		m.updateNameColumnTitle()
+
 		m.ConfirmRemove = false
 		m.Footer = successStyle.Render(fmt.Sprintf("Dotfile '%s' removed successfully", name))
 
@@ -182,4 +210,11 @@ func (m ListModel) View() string {
 	view := lipgloss.JoinVertical(lipgloss.Left, tableView, lipgloss.Place(footerPosition, 0, lipgloss.Left, lipgloss.Bottom, footer))
 
 	return view
+}
+
+func (m *ListModel) updateNameColumnTitle() {
+	m.Table.SetColumns([]table.Column{
+		{Title: fmt.Sprintf("Dotfiles (%d)", len(m.Table.Rows())), Width: 15},
+		{Title: unchangedStyle.Render("Origin Path"), Width: 50},
+	})
 }
