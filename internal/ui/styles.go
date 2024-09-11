@@ -18,4 +18,7 @@ var (
 	successStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("82"))
 	errorStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("196"))
 	alertStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("208"))
+	infoStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("39"))
+	boldStyle      = lipgloss.NewStyle().Bold(true)
+	boldAndfocused = boldStyle.Copy().Foreground(lipgloss.Color("205"))
 )
