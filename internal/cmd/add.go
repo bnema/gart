@@ -41,7 +41,6 @@ func getNameFromPath(path string) string {
 	name := filepath.Base(path)
 	fileInfo, err := os.Stat(path)
 	if err != nil {
-		fmt.Printf("Error accessing path: %v\n", err)
 		return name
 	}
 
