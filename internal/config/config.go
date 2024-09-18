@@ -93,7 +93,7 @@ func SaveConfig(configPath string, config *Config) error {
 }
 
 // CreateDefaultConfig creates a default configuration
-func CreateDefaultConfig(configPath string) (*Config, error) {
+func CreateDefaultConfig() (*Config, error) {
 	xdgConfigHome := os.Getenv("XDG_CONFIG_HOME")
 	if xdgConfigHome == "" {
 		homeDir, err := os.UserHomeDir()
@@ -105,7 +105,7 @@ func CreateDefaultConfig(configPath string) (*Config, error) {
 
 	gartConfigDir := filepath.Join(xdgConfigHome, "gart")
 
-	configPath = filepath.Join(gartConfigDir, "config.toml")
+	configPath := filepath.Join(gartConfigDir, "config.toml")
 
 	branchName, err := system.GetHostname()
 	if err != nil {
