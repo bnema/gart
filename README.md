@@ -109,6 +109,7 @@ git_versioning = true
 storage_path = "/home/user/.config/gart/.store"
 
 [settings.git]
+auto_push = false
 branch = "custom-branch-name"
 commit_message_format = "{{ .Action }} {{ .Dotfile }}"
 ```
@@ -116,6 +117,7 @@ commit_message_format = "{{ .Action }} {{ .Dotfile }}"
 - `git_versioning`: Enables or disables Git versioning for your dotfiles.
 - `storage_path`: Sets the directory where Gart stores managed dotfiles.
 - `[settings.git]`: Subsection for Git-specific settings.
+  - `auto_push`: Enables or disables auto-pushing to the remote repository. (You must have a remote repository set up)
   - `branch`: Specifies the Git branch to use for versioning. If not set, the default branch name will be the hostname of your machine.
   - `commit_message_format`: Specifies the format of the commit message when updating a dotfile. The message is templated using Go's text/template package and has access to the following fields (for now):
     - `.Action`: The action performed (e.g., "Add", "Update", "Remove").
@@ -127,6 +129,7 @@ commit_message_format = "{{ .Action }} {{ .Dotfile }}"
 - [x] Custom store set in the config file
 - [x] Remove a dotfile from the list view
 - [x] Version command
+- [x] Auto-push feature
 - [ ] Status command to display the status of all the dotfiles (last commit, changes, etc.)
 - [ ] Remove command to remove a dotfile from the store
 - [ ] Update command to update Gart to the latest version
