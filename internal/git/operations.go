@@ -89,3 +89,19 @@ func RepoExists(path string) (bool, error) {
 	}
 	return false, err
 }
+
+func PushChanges(path string) error {
+	// Check if a remote origin is configured
+	cmd := exec.Command("git", "-C", path, "remote", "get-url", "origin")
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("remote origin not configured: %w", err)
+	}
+
+	// Push the changes
+	pushCmd := exec.Command("git", "-C", path, "push", "origin", "HEAD")
+	if output, err := pushCmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("failed to push changes: %w\nOutput: %s", err, output)
+	}
+
+	return nil
+}

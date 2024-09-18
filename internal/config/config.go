@@ -26,6 +26,7 @@ type SettingsConfig struct {
 type GitConfig struct {
 	Branch              string `toml:"branch"`
 	CommitMessageFormat string `toml:"commit_message_format"`
+	AutoPush            bool   `toml:"auto_push"`
 }
 
 // LoadConfig loads the configuration from the file
@@ -118,6 +119,7 @@ func CreateDefaultConfig(configPath string) (*Config, error) {
 			Git: GitConfig{
 				Branch:              branchName,
 				CommitMessageFormat: "{{.Action}} {{.Dotfile}}",
+				AutoPush:            false,
 			},
 		},
 		Dotfiles: make(map[string]string),
