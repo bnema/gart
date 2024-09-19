@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/bnema/gart/internal/config"
@@ -63,5 +64,17 @@ func (app *App) GitCommitChanges(action, dotfileName string) error {
 	if !app.Config.Settings.GitVersioning {
 		return nil // Git versioning is disabled, so we don't commit
 	}
-	return git.CommitChanges(app.StoragePath, app.Config.Settings.Git.CommitMessageFormat, dotfileName, action)
+	err := git.CommitChanges(app.StoragePath, app.Config.Settings.Git.CommitMessageFormat, dotfileName, action)
+	if err != nil {
+		return err
+	}
+
+	if app.Config.Settings.Git.AutoPush {
+		err = git.PushChanges(app.StoragePath)
+		if err != nil {
+			return fmt.Errorf("failed to push changes: %w", err)
+		}
+	}
+
+	return nil
 }
