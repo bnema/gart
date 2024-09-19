@@ -8,6 +8,7 @@ Gart is a command-line tool written in Go that helps you manage and sync your do
 - **Simple Overview**: List, select and remove the dotfiles currently being managed with `gart list`
 - **Flexible Naming**: (Optional) assign custom names to your dotfiles for easier management (e.g., `gart add ~/.config/nvim nvim-backup`)
 - **Git Versioning:** (Optional) Git-based version control with templated, configurable commits and customizable branch names (default: hostname).
+- **Auto-Push:** (Optional) Push changes to the remote repository automatically.
 
 ![Demo Deploy](assets/demo.gif?raw=true)
 

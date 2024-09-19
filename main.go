@@ -89,7 +89,7 @@ func checkFirstLaunch(configPath string) (*config.Config, bool, error) {
 		// If the error is because the file doesn't exist, create a default config
 		if os.IsNotExist(err) {
 			// Create a default config
-			cfg, err = config.CreateDefaultConfig(configPath)
+			cfg, err = config.CreateDefaultConfig()
 			if err != nil {
 				return nil, false, fmt.Errorf("error creating default config: %w", err)
 			}
