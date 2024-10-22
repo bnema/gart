@@ -25,7 +25,7 @@ func main() {
 	}
 
 	if isFirstLaunch {
-		fmt.Println("First launch detected. New configuration created.")
+		// do something
 	}
 
 	app := &app.App{

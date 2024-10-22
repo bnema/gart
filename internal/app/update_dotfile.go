@@ -21,8 +21,11 @@ func (app *App) UpdateDotfile(name, path string) error {
 		return fmt.Errorf("failed to create destination directory: %w", err)
 	}
 
+	// Get the ignores for this dotfile
+	ignores := app.Config.DotfilesIgnores[name]
+
 	// Copy the file or directory
-	if err := system.CopyPath(path, destPath); err != nil {
+	if err := system.CopyPath(path, destPath, ignores); err != nil {
 		return fmt.Errorf("failed to copy %s to %s: %w", path, destPath, err)
 	}
 

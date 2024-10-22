@@ -11,8 +11,9 @@ import (
 
 // Config represents the structure of the entire configuration file
 type Config struct {
-	Settings SettingsConfig    `toml:"settings"`
-	Dotfiles map[string]string `toml:"dotfiles"`
+	Settings        SettingsConfig      `toml:"settings"`
+	Dotfiles        map[string]string   `toml:"dotfiles"`
+	DotfilesIgnores map[string][]string `toml:"dotfiles.ignores,omitempty"`
 }
 
 // SettingsConfig represents the general settings of the application
@@ -35,51 +36,50 @@ func LoadConfig(configPath string) (*Config, error) {
 		return nil, err
 	}
 
+	var config Config
 	data, err := os.ReadFile(configPath)
 	if err != nil {
 		return nil, fmt.Errorf("error reading config file: %w", err)
 	}
 
-	var config Config
 	if err := toml.Unmarshal(data, &config); err != nil {
 		return nil, fmt.Errorf("error unmarshalling config: %w", err)
+	}
+
+	// Ensure Dotfiles and Ignores are initialized
+	if config.Dotfiles == nil {
+		config.Dotfiles = make(map[string]string)
+	}
+	if config.DotfilesIgnores == nil {
+		config.DotfilesIgnores = make(map[string][]string)
 	}
 
 	return &config, nil
 }
 
 // AddDotfileToConfig adds a new dotfile to the config file
-func AddDotfileToConfig(configPath string, name, path string) error {
-	tree, err := toml.LoadFile(configPath)
+func AddDotfileToConfig(configPath string, name, path string, ignores []string) error {
+	config, err := LoadConfig(configPath)
 	if err != nil {
-		if os.IsNotExist(err) {
-			tree, _ = toml.Load("")
-		} else {
+		if !os.IsNotExist(err) {
 			return fmt.Errorf("error loading config file: %w", err)
+		}
+		config = &Config{
+			Dotfiles: make(map[string]string),
+			// Don't initialize DotfilesIgnores here unless ignores are provided
 		}
 	}
 
-	dotfilesTree, ok := tree.Get("dotfiles").(*toml.Tree)
-	if !ok {
-		dotfilesTree, _ = toml.Load("")
-		tree.Set("dotfiles", dotfilesTree)
+	config.Dotfiles[name] = path
+	if len(ignores) > 0 {
+		// Initialize DotfilesIgnores only when needed
+		if config.DotfilesIgnores == nil {
+			config.DotfilesIgnores = make(map[string][]string)
+		}
+		config.DotfilesIgnores[name] = ignores
 	}
 
-	dotfilesTree.Set(name, path)
-
-	f, err := os.OpenFile(configPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
-	if err != nil {
-		return fmt.Errorf("error opening config file: %w", err)
-	}
-	defer f.Close()
-
-	encoder := toml.NewEncoder(f)
-	err = encoder.Encode(tree)
-	if err != nil {
-		return fmt.Errorf("error encoding config: %w", err)
-	}
-
-	return nil
+	return SaveConfig(configPath, config)
 }
 
 // SaveConfig saves the configuration to the file
@@ -136,4 +136,33 @@ func CreateDefaultConfig() (*Config, error) {
 	fmt.Printf("Created default configuration at %s\n", configPath)
 
 	return config, nil
+}
+
+// UpdateDotfileIgnores updates the ignores for an existing dotfile in the config file
+func UpdateDotfileIgnores(configPath string, name string, ignores []string) error {
+	tree, err := toml.LoadFile(configPath)
+	if err != nil {
+		return fmt.Errorf("error loading config file: %w", err)
+	}
+
+	ignoresTree, ok := tree.Get("dotfiles.ignores").(*toml.Tree)
+	if !ok {
+		ignoresTree, _ = toml.Load("")
+		tree.Set("dotfiles.ignores", ignoresTree)
+	}
+	ignoresTree.Set(name, ignores)
+
+	f, err := os.OpenFile(configPath, os.O_WRONLY|os.O_TRUNC, 0644)
+	if err != nil {
+		return fmt.Errorf("error opening config file: %w", err)
+	}
+	defer f.Close()
+
+	encoder := toml.NewEncoder(f)
+	err = encoder.Encode(tree)
+	if err != nil {
+		return fmt.Errorf("error encoding config: %w", err)
+	}
+
+	return nil
 }
