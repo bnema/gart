@@ -2,10 +2,11 @@
 
 [Features](#features) • [Installation](#installation) • [Usage](#usage) • [Configuration](#configuration) • [Roadmap](#roadmap) • [License](#license)
 
-Gart is a command-line tool written in Go that helps you manage and sync your dotfiles across different systems. With Gart, you can easily keep your configuration files up to date and maintain a consistent setup across multiple machines.
+Gart is a command-line tool written in Go that helps you manage and sync your dotfiles across different Linux systems.
 
 ## Features
 - **Quick Addition**: Add a dotfile directory or a single file to Gart with a single command (e.g., `gart add ~/.config/zsh` or `gart add ~/.config/nvim/init.lua`)
+- **Ignore Patterns**: Exclude specific files or directories using the `--ignore` flag (e.g., `gart add ~/.config/nvim --ignore "init.bak" --ignore "doc/"`)
 - **Easy sync**: Use the sync command to detect changes in all your managed dotfiles and backup them automatically (e.g., `gart sync` or for a single dotfile `gart sync nvim`)
 - **Simple Overview**: List, select and remove the dotfiles currently being managed with `gart list`
 - **Flexible Naming**: (Optional) assign custom names to your dotfiles for easier management (e.g., `gart add ~/.config/nvim nvim-backup`)
@@ -67,16 +68,19 @@ gart add ~/.config/hypr Hyprland
 gart add ~/.config/fish --ignore "*.log" --ignore "cache/"
 ```
 
-The `--ignore` flag allows you to specify patterns for files or directories that should be excluded when adding or syncing dotfiles. You can specify multiple patterns by using the flag multiple times. Additionally, you can manage ignore patterns at any time by editing your `config.toml` file under the `[dotfiles.ignores]` section - any changes will be applied during the next sync operation.
+The `--ignore` flag allows you to specify patterns for files or directories that should be excluded when adding or syncing dotfiles. You can specify multiple patterns by using the flag multiple times or by editing your `config.toml` file under the `[dotfiles.ignores]` section.
 
-Ignore pattern examples:
-- `file.txt` - Ignores the file.txt file
-- `*.json` - Ignores all JSON files
-- `cache/` - Ignores the cache directory and its contents
-- `temp*/` - Ignores all directories starting with "temp"
-- `*.{jpg,png}` - Ignores all JPG and PNG files
-- `**/*.log` - Ignores log files in any subdirectory
-- `*_test.*` - Ignores all test files with any extension
+Example usage:
+```bash
+gart add ~/.config/fish --ignore "*.log" --ignore "cache/"
+```
+
+Common ignore patterns:
+- `*.ext` - Files with specific extension (e.g., `*.log`, `*.tmp`)
+- `dir/` - Directory and its contents (e.g., `cache/`, `node_modules/`)
+- `**/pattern` - Pattern matching in any subdirectory (e.g., `**/temp`, `**/*.log`)
+- `*.{ext1,ext2}` - Multiple extensions (e.g., `*.{jpg,png}`)
+- `prefix*` or `*suffix` - Files/directories with prefix/suffix (e.g., `temp*`, `*_backup`)
 
 To update/synchronize a specific dotfile, use the `sync` command followed by the name of the dotfile:
 ```
@@ -120,14 +124,6 @@ fish = ["*.json", "cache/", "temp*/", "**/*.log"]
 nvim = ["*.swap", "backup/"]
 ```
 
-Ignore patterns support:
-- Basic wildcards: `*` matches any sequence of characters
-- Directory-specific patterns: Adding a trailing `/` indicates the pattern is for directories only
-- Full path wildcards: `**/` matches any number of subdirectories
-- Extension matching: `*.ext` matches all files with a specific extension
-- Multiple extensions: `*.{ext1,ext2}` matches all files with one of the specified extensions
-- Multiple patterns: Each dotfile can have multiple ignore patterns
-
 Common ignore pattern examples:
 ```toml
 [dotfiles.ignores]
@@ -140,9 +136,9 @@ dotfile = [
     "*_modules/",        # Ignores directories ending with _modules
     "*.{jpg,png,gif}",   # Ignores common image files
     "**/node_modules/",  # Ignores node_modules directories at any depth
-    ".git/"             # Ignores git directory
 ]
 ```
+Note: The `.git/` directory is ignored by default.
 
 ### Settings Section
 
