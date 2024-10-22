@@ -1,5 +1,7 @@
 # Gart - Dotfile Manager
 
+[Features](#features) • [Installation](#installation) • [Usage](#usage) • [Configuration](#configuration) • [Roadmap](#roadmap) • [License](#license)
+
 Gart is a command-line tool written in Go that helps you manage and sync your dotfiles across different systems. With Gart, you can easily keep your configuration files up to date and maintain a consistent setup across multiple machines.
 
 ## Features
@@ -62,10 +64,10 @@ gart add ~/.config/nvim
 # or with a custom name
 gart add ~/.config/hypr Hyprland
 # or with ignore patterns
-gart add ~/.config/fish --ignore "very_secret_file.txt"
+gart add ~/.config/fish --ignore "*.log" --ignore "cache/"
 ```
 
-The `--ignore` flag allows you to specify patterns for files or directories that should be excluded when adding or syncing dotfiles. You can use multiple `--ignore` flags to specify multiple patterns.
+The `--ignore` flag allows you to specify patterns for files or directories that should be excluded when adding or syncing dotfiles. You can specify multiple patterns by using the flag multiple times. Additionally, you can manage ignore patterns at any time by editing your `config.toml` file under the `[dotfiles.ignores]` section - any changes will be applied during the next sync operation.
 
 Ignore pattern examples:
 - `file.txt` - Ignores the file.txt file
@@ -140,6 +142,21 @@ dotfile = [
     "**/node_modules/",  # Ignores node_modules directories at any depth
     ".git/"             # Ignores git directory
 ]
+```
+
+### Settings Section
+
+The `[settings]` section contains global configuration options for Gart:
+
+```toml
+[settings]
+git_versioning = true
+storage_path = "/home/user/.config/gart/.store"
+
+[settings.git]
+auto_push = false
+branch = "custom-branch-name"
+commit_message_format = "{{ .Action }} {{ .Dotfile }}"
 ```
 
 - `git_versioning`: Enables or disables Git versioning for your dotfiles.
