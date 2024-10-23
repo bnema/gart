@@ -5,15 +5,14 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
-func CopyDirectory(src, dst string) error {
-	// Create the destination directory if it doesn't exist
+func CopyDirectory(src, dst string, ignores []string) error {
 	if err := os.MkdirAll(dst, os.ModePerm); err != nil {
 		return fmt.Errorf("error creating destination directory: %v", err)
 	}
 
-	// Read the source directory
 	entries, err := os.ReadDir(src)
 	if err != nil {
 		return fmt.Errorf("error reading source directory: %v", err)
@@ -21,26 +20,26 @@ func CopyDirectory(src, dst string) error {
 
 	for _, entry := range entries {
 		if entry.Name() == ".git" || entry.Name() == ".github" {
-			// Skip .git and .github directories
 			continue
 		}
 
 		srcPath := filepath.Join(src, entry.Name())
 		dstPath := filepath.Join(dst, entry.Name())
 
+		if shouldIgnore(srcPath, ignores) {
+			continue
+		}
+
 		if entry.IsDir() {
-			// Recursively copy subdirectories
-			if err := CopyDirectory(srcPath, dstPath); err != nil {
+			if err := CopyDirectory(srcPath, dstPath, ignores); err != nil {
 				return fmt.Errorf("error copying directory: %v", err)
 			}
 		} else {
-			// Skip symlinks
 			if entry.Type()&os.ModeSymlink != 0 {
 				continue
 			}
 
-			// Copy regular files
-			if err := CopyFile(srcPath, dstPath); err != nil {
+			if err := CopyFile(srcPath, dstPath, ignores); err != nil {
 				return fmt.Errorf("error copying file: %v", err)
 			}
 		}
@@ -49,7 +48,12 @@ func CopyDirectory(src, dst string) error {
 	return nil
 }
 
-func CopyFile(src, dst string) error {
+func CopyFile(src, dst string, ignores []string) error {
+	// Check if the file should be ignored
+	if shouldIgnore(src, ignores) {
+		return nil // Skip this file without error
+	}
+
 	// Open the source file
 	srcFile, err := os.Open(src)
 	if err != nil {
@@ -79,14 +83,26 @@ func CopyFile(src, dst string) error {
 }
 
 // CopyPath copies a file or directory from src to dst
-func CopyPath(src, dst string) error {
+func CopyPath(src, dst string, ignores []string) error {
 	srcInfo, err := os.Stat(src)
 	if err != nil {
 		return fmt.Errorf("error getting source info: %w", err)
 	}
 
 	if srcInfo.IsDir() {
-		return CopyDirectory(src, dst)
+		return CopyDirectory(src, dst, ignores)
 	}
-	return CopyFile(src, dst)
+	return CopyFile(src, dst, ignores)
+}
+
+func shouldIgnore(path string, ignores []string) bool {
+	for _, ignore := range ignores {
+		if matched, _ := filepath.Match(ignore, filepath.Base(path)); matched {
+			return true
+		}
+		if strings.HasPrefix(path, ignore) {
+			return true
+		}
+	}
+	return false
 }

@@ -12,6 +12,7 @@ import (
 // RunUpdateView is the function that runs the update (edit) dotfile view
 func RunSyncView(app *app.App) {
 	sourcePath := app.Dotfile.Path
+	ignores := app.Config.DotfilesIgnores[app.Dotfile.Name]
 
 	// Check if the source is a file or directory
 	sourceInfo, err := os.Stat(sourcePath)
@@ -31,7 +32,7 @@ func RunSyncView(app *app.App) {
 	}
 
 	// Check for changes before copying
-	changed, err := system.DiffFiles(sourcePath, storePath)
+	changed, err := system.DiffFiles(sourcePath, storePath, ignores)
 	if err != nil {
 		fmt.Printf("Error comparing dotfiles: %v\n", err)
 		return
@@ -43,12 +44,12 @@ func RunSyncView(app *app.App) {
 		var err error
 		if sourceInfo.IsDir() {
 			// Handle directory
-			err = system.CopyDirectory(sourcePath, storePath)
+			err = system.CopyDirectory(sourcePath, storePath, ignores)
 		} else {
 			// Handle single file
 			err = os.MkdirAll(filepath.Dir(storePath), 0755)
 			if err == nil {
-				err = system.CopyFile(sourcePath, storePath)
+				err = system.CopyFile(sourcePath, storePath, ignores)
 			}
 		}
 

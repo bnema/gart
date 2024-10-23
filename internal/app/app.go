@@ -78,3 +78,12 @@ func (app *App) GitCommitChanges(action, dotfileName string) error {
 
 	return nil
 }
+
+func (app *App) UpdateDotfileIgnores(name string, ignores []string) error {
+	if _, ok := app.Config.Dotfiles[name]; !ok {
+		return fmt.Errorf("dotfile '%s' not found", name)
+	}
+
+	app.Config.DotfilesIgnores[name] = ignores
+	return config.UpdateDotfileIgnores(app.ConfigFilePath, name, ignores)
+}

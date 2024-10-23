@@ -10,16 +10,16 @@ import (
 	"github.com/bnema/gart/internal/system"
 )
 
-func (app *App) AddDotfile(path string, dotfileName string) error {
+func (app *App) AddDotfile(path string, dotfileName string, ignores []string) error {
 	path = app.ExpandHomeDir(path)
 
 	app.Dotfile.Name = dotfileName
 	app.Dotfile.Path = path
 
 	if app.IsDir(path) {
-		return app.addDotfileDir()
+		return app.addDotfileDir(ignores)
 	}
-	return app.addDotfileFile()
+	return app.addDotfileFile(ignores)
 }
 
 func (app *App) ExpandHomeDir(path string) string {
@@ -33,18 +33,18 @@ func (app *App) ExpandHomeDir(path string) string {
 	return path
 }
 
-func (app *App) addDotfileDir() error {
+func (app *App) addDotfileDir(ignores []string) error {
 	cleanedPath := filepath.Clean(app.Dotfile.Path)
 	storePath := filepath.Join(app.StoragePath, app.Dotfile.Name)
 
-	if err := system.CopyDirectory(cleanedPath, storePath); err != nil {
+	if err := system.CopyDirectory(cleanedPath, storePath, ignores); err != nil {
 		return fmt.Errorf("error copying directory: %w", err)
 	}
 
-	return app.UpdateConfig(app.Dotfile.Name, cleanedPath)
+	return app.UpdateConfig(app.Dotfile.Name, cleanedPath, ignores)
 }
 
-func (app *App) addDotfileFile() error {
+func (app *App) addDotfileFile(ignores []string) error {
 	cleanedPath := filepath.Clean(app.Dotfile.Path)
 	fileName := filepath.Base(cleanedPath)
 	storePath := filepath.Join(app.StoragePath, fileName)
@@ -53,17 +53,17 @@ func (app *App) addDotfileFile() error {
 		return fmt.Errorf("error creating store directory: %w", err)
 	}
 
-	if err := system.CopyFile(cleanedPath, storePath); err != nil {
+	if err := system.CopyFile(cleanedPath, storePath, ignores); err != nil {
 		return fmt.Errorf("error copying file: %w", err)
 	}
 
-	return app.UpdateConfig(app.Dotfile.Name, cleanedPath)
+	return app.UpdateConfig(app.Dotfile.Name, cleanedPath, ignores)
 }
 
-func (app *App) UpdateConfig(dotfileName, cleanedPath string) error {
+func (app *App) UpdateConfig(dotfileName, cleanedPath string, ignores []string) error {
 	app.Config.Dotfiles[dotfileName] = cleanedPath
 
-	if err := config.AddDotfileToConfig(app.ConfigFilePath, dotfileName, cleanedPath); err != nil {
+	if err := config.AddDotfileToConfig(app.ConfigFilePath, dotfileName, cleanedPath, ignores); err != nil {
 		return fmt.Errorf("error adding dotfile to config: %w", err)
 	}
 
@@ -82,10 +82,10 @@ func (app *App) IsDir(path string) bool {
 	return fileInfo.IsDir()
 }
 
-func (app *App) CopyDirectory(src, dst string) error {
-	return system.CopyDirectory(src, dst)
+func (app *App) CopyDirectory(src, dst string, ignores []string) error {
+	return system.CopyDirectory(src, dst, ignores)
 }
 
-func (app *App) CopyFile(src, dst string) error {
-	return system.CopyFile(src, dst)
+func (app *App) CopyFile(src, dst string, ignores []string) error {
+	return system.CopyFile(src, dst, ignores)
 }

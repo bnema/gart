@@ -11,7 +11,8 @@ import (
 )
 
 func getAddCmd() *cobra.Command {
-	return &cobra.Command{
+	var ignores []string
+	cmd := &cobra.Command{
 		Use:   "add [path] [name]",
 		Short: "Add a new dotfile or folder",
 		Run: func(cmd *cobra.Command, args []string) {
@@ -32,9 +33,11 @@ func getAddCmd() *cobra.Command {
 				return
 			}
 
-			ui.RunAddDotfileView(appInstance, path, name)
+			ui.RunAddDotfileView(appInstance, path, name, ignores)
 		},
 	}
+	cmd.Flags().StringSliceVar(&ignores, "ignore", []string{}, "Paths to ignore (can be used multiple times)")
+	return cmd
 }
 
 func getNameFromPath(path string) string {
