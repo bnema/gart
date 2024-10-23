@@ -10,9 +10,8 @@ import (
 )
 
 // RunUpdateView is the function that runs the update (edit) dotfile view
-func RunSyncView(app *app.App) {
+func RunSyncView(app *app.App, ignores []string) {
 	sourcePath := app.Dotfile.Path
-	ignores := app.Config.DotfilesIgnores[app.Dotfile.Name]
 
 	// Check if the source is a file or directory
 	sourceInfo, err := os.Stat(sourcePath)

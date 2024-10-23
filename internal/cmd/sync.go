@@ -25,7 +25,9 @@ func syncAllDotfiles() {
 	for name, path := range appInstance.Config.Dotfiles {
 		appInstance.Dotfile.Name = name
 		appInstance.Dotfile.Path = path
-		ui.RunSyncView(appInstance)
+		// Get ignores for this dotfile
+		ignores := appInstance.Config.DotfilesIgnores[name]
+		ui.RunSyncView(appInstance, ignores)
 	}
 }
 
@@ -37,5 +39,7 @@ func syncSingleDotfile(name string) {
 	}
 	appInstance.Dotfile.Name = name
 	appInstance.Dotfile.Path = path
-	ui.RunSyncView(appInstance)
+	// Get ignores for this dotfile
+	ignores := appInstance.Config.DotfilesIgnores[name]
+	ui.RunSyncView(appInstance, ignores)
 }

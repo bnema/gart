@@ -59,9 +59,22 @@ This will install the latest version of Gart to your `$GOPATH/bin` directory. Ma
 To add a new dotfile to the configuration, use the `add` command followed by the path to the dotfile and the name (optional)
 ```
 gart add ~/.config/nvim
-or
+# or with a custom name
 gart add ~/.config/hypr Hyprland
+# or with ignore patterns
+gart add ~/.config/fish --ignore "very_secret_file.txt"
 ```
+
+The `--ignore` flag allows you to specify patterns for files or directories that should be excluded when adding or syncing dotfiles. You can use multiple `--ignore` flags to specify multiple patterns.
+
+Ignore pattern examples:
+- `file.txt` - Ignores the file.txt file
+- `*.json` - Ignores all JSON files
+- `cache/` - Ignores the cache directory and its contents
+- `temp*/` - Ignores all directories starting with "temp"
+- `*.{jpg,png}` - Ignores all JPG and PNG files
+- `**/*.log` - Ignores log files in any subdirectory
+- `*_test.*` - Ignores all test files with any extension
 
 To update/synchronize a specific dotfile, use the `sync` command followed by the name of the dotfile:
 ```
@@ -88,7 +101,7 @@ The configuration file is divided into two main sections: `[dotfiles]` and `[set
 
 ### Dotfiles Section
 
-The `[dotfiles]` section lists the dotfiles you want to manage. Each entry represents a dotfile, with the key being the name of the dotfile and the value being the path to the dotfile on your local system.
+The `[dotfiles]` section lists the dotfiles you want to manage, and the optional `[dotfiles.ignores]` section specifies patterns to ignore for each dotfile.
 
 Example:
 
@@ -97,21 +110,36 @@ Example:
 alacritty = "/home/user/.config/alacritty"
 nvim = "/home/user/.config/nvim"
 starship = "/home/user/.config/starship.toml"
+fish = "/home/user/.config/fish"
+
+[dotfiles.ignores]
+alacritty = ["config.bak"]
+fish = ["*.json", "cache/", "temp*/", "**/*.log"]
+nvim = ["*.swap", "backup/"]
 ```
 
-### Settings Section
+Ignore patterns support:
+- Basic wildcards: `*` matches any sequence of characters
+- Directory-specific patterns: Adding a trailing `/` indicates the pattern is for directories only
+- Full path wildcards: `**/` matches any number of subdirectories
+- Extension matching: `*.ext` matches all files with a specific extension
+- Multiple extensions: `*.{ext1,ext2}` matches all files with one of the specified extensions
+- Multiple patterns: Each dotfile can have multiple ignore patterns
 
-The `[settings]` section contains global configuration options for Gart:
-
+Common ignore pattern examples:
 ```toml
-[settings]
-git_versioning = true
-storage_path = "/home/user/.config/gart/.store"
-
-[settings.git]
-auto_push = false
-branch = "custom-branch-name"
-commit_message_format = "{{ .Action }} {{ .Dotfile }}"
+[dotfiles.ignores]
+dotfile = [
+    "cache/",            # Ignores cache directory
+    "*/temp/",           # Ignores temp directories one level deep
+    "**/temp/",          # Ignores temp directories at any depth
+    "*.log",             # Ignores all log files
+    "test*/",            # Ignores directories starting with test
+    "*_modules/",        # Ignores directories ending with _modules
+    "*.{jpg,png,gif}",   # Ignores common image files
+    "**/node_modules/",  # Ignores node_modules directories at any depth
+    ".git/"             # Ignores git directory
+]
 ```
 
 - `git_versioning`: Enables or disables Git versioning for your dotfiles.
@@ -130,6 +158,7 @@ commit_message_format = "{{ .Action }} {{ .Dotfile }}"
 - [x] Remove a dotfile from the list view
 - [x] Version command
 - [x] Auto-push feature
+- [x] Ignore flag for the add command
 - [ ] Status command to display the status of all the dotfiles (last commit, changes, etc.)
 - [ ] Remove command to remove a dotfile from the store
 - [ ] Update command to update Gart to the latest version
