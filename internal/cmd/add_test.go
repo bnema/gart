@@ -76,6 +76,17 @@ func TestAddCommand(t *testing.T) {
 			expectedFiles:  []string{"settings.yaml"},
 		},
 		{
+			name: "Multiple chained ignore flags",
+			files: []string{
+				"main.swp",
+				"config.bak",
+				"node_modules/package.json",
+				"src/index.js",
+			},
+			ignorePatterns: []string{"*.swp", "*.bak", "node_modules/"},
+			expectedFiles:  []string{"src/index.js"},
+		},
+		{
 			name: "Directory ignore with trailing slash",
 			dirs: []string{
 				"cache",
