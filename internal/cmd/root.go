@@ -28,6 +28,7 @@ func Execute(a *app.App) {
 	rootCmd.AddCommand(getAddCmd())
 	rootCmd.AddCommand(getSyncCmd())
 	rootCmd.AddCommand(getListCmd())
+	rootCmd.AddCommand(getEditCmd())
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
