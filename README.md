@@ -130,12 +130,11 @@ Common ignore pattern examples:
 dotfile = [
     "cache/",            # Ignores cache directory
     "*/temp/",           # Ignores temp directories one level deep
-    "**/temp/",          # Ignores temp directories at any depth
+    "**/node_modules/",  # Ignores node_modules directories at any depth
     "*.log",             # Ignores all log files
     "test*/",            # Ignores directories starting with test
     "*_modules/",        # Ignores directories ending with _modules
     "*.{jpg,png,gif}",   # Ignores common image files
-    "**/node_modules/",  # Ignores node_modules directories at any depth
 ]
 ```
 Note: The `.git/` directory is ignored by default.
