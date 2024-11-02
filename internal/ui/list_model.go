@@ -34,21 +34,6 @@ type KeyMap struct {
 	Esc    key.Binding
 }
 
-func RunListView(app *app.App) {
-	dotfiles := app.GetDotfiles()
-	if len(dotfiles) == 0 {
-		fmt.Println("No dotfiles found. Please add some dotfiles first.")
-		return
-	}
-
-	model := InitListModel(*app.Config, app)
-	p := tea.NewProgram(model)
-	if _, err := p.Run(); err != nil {
-		fmt.Printf("Error running program: %v\n", err)
-		os.Exit(1)
-	}
-}
-
 func DefaultKeyMap() KeyMap {
 	return KeyMap{
 		Remove: key.NewBinding(
@@ -63,6 +48,21 @@ func DefaultKeyMap() KeyMap {
 			key.WithKeys("esc"),
 			key.WithHelp("esc", "quit"),
 		),
+	}
+}
+
+func RunListView(app *app.App) {
+	dotfiles := app.GetDotfiles()
+	if len(dotfiles) == 0 {
+		fmt.Println("No dotfiles found. Please add some dotfiles first.")
+		return
+	}
+
+	model := InitListModel(*app.Config, app)
+	p := tea.NewProgram(model)
+	if _, err := p.Run(); err != nil {
+		fmt.Printf("Error running program: %v\n", err)
+		os.Exit(1)
 	}
 }
 
