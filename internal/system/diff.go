@@ -14,8 +14,12 @@ func DiffFiles(origin, dest string, ignores []string) (bool, error) {
 	return diffRecursive(origin, dest, dmp, ignores)
 }
 
-// diffRecursive is a helper function that recursively compares files and directories.
 func diffRecursive(origin, dest string, dmp *diffmatchpatch.DiffMatchPatch, ignores []string) (bool, error) {
+	// Check if the path should be ignored before doing anything else
+	if shouldIgnore(origin, ignores) {
+		return false, nil
+	}
+
 	originInfo, err := os.Stat(origin)
 	if os.IsNotExist(err) {
 		return false, nil
@@ -28,14 +32,13 @@ func diffRecursive(origin, dest string, dmp *diffmatchpatch.DiffMatchPatch, igno
 		return false, nil
 	}
 
-	// Check if the origin item should be ignored
-	if shouldIgnore(origin, ignores) {
-		return false, nil
-	}
-
 	destInfo, err := os.Stat(dest)
 	if os.IsNotExist(err) {
-		return copyItem(origin, dest, originInfo.IsDir(), ignores)
+		// Only copy if the item isn't ignored
+		if !shouldIgnore(origin, ignores) {
+			return copyItem(origin, dest, originInfo.IsDir(), ignores)
+		}
+		return false, nil
 	} else if err != nil {
 		return false, err
 	}
@@ -43,10 +46,16 @@ func diffRecursive(origin, dest string, dmp *diffmatchpatch.DiffMatchPatch, igno
 	if originInfo.IsDir() && destInfo.IsDir() {
 		return diffDirectories(origin, dest, dmp, ignores)
 	} else if !originInfo.IsDir() && !destInfo.IsDir() {
-		return diffFiles(origin, dest, dmp, ignores)
+		if !shouldIgnore(origin, ignores) {
+			return diffFiles(origin, dest, dmp, ignores)
+		}
+		return false, nil
 	} else {
 		// One is a file, the other is a directory
-		return replaceItem(origin, dest, originInfo.IsDir(), ignores)
+		if !shouldIgnore(origin, ignores) {
+			return replaceItem(origin, dest, originInfo.IsDir(), ignores)
+		}
+		return false, nil
 	}
 }
 
@@ -72,14 +81,20 @@ func diffDirectories(origin, dest string, dmp *diffmatchpatch.DiffMatchPatch, ig
 		if file.Name() == ".git" || file.Name() == ".github" {
 			continue
 		}
-		originMap[file.Name()] = file
+		originPath := filepath.Join(origin, file.Name())
+		if !shouldIgnore(originPath, ignores) {
+			originMap[file.Name()] = file
+		}
 	}
 
 	for _, file := range destFiles {
 		if file.Name() == ".git" || file.Name() == ".github" {
 			continue
 		}
-		destMap[file.Name()] = file
+		destPath := filepath.Join(dest, file.Name())
+		if !shouldIgnore(destPath, ignores) {
+			destMap[file.Name()] = file
+		}
 	}
 
 	// Check for new or modified files in origin
