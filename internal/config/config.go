@@ -18,9 +18,10 @@ type Config struct {
 
 // SettingsConfig represents the general settings of the application
 type SettingsConfig struct {
-	StoragePath   string    `toml:"storage_path"`
-	GitVersioning bool      `toml:"git_versioning"`
-	Git           GitConfig `toml:"git"`
+	StoragePath     string    `toml:"storage_path"`
+	GitVersioning   bool      `toml:"git_versioning"`
+	ReverseSyncMode bool      `toml:"reverse_sync"`
+	Git             GitConfig `toml:"git"`
 }
 
 // GitConfig represents the structure of the git configuration
@@ -114,8 +115,9 @@ func CreateDefaultConfig() (*Config, error) {
 
 	config := &Config{
 		Settings: SettingsConfig{
-			StoragePath:   filepath.Join(gartConfigDir, ".store"),
-			GitVersioning: false,
+			StoragePath:     filepath.Join(gartConfigDir, ".store"),
+			ReverseSyncMode: false,
+			GitVersioning:   false,
 			Git: GitConfig{
 				Branch:              branchName,
 				CommitMessageFormat: "{{.Action}} {{.Dotfile}}",
