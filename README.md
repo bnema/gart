@@ -9,7 +9,6 @@ Gart is a command-line tool written in Go that helps you manage and sync your do
 - **Ignore Patterns**: Exclude specific files or directories using the `--ignore` flag (e.g., `gart add ~/.config/nvim --ignore "init.bak" --ignore "doc/"`)
 - **Easy sync**: Use the sync command to detect changes in all your managed dotfiles and backup them automatically (e.g., `gart sync` or for a single dotfile `gart sync nvim`)
 - **Simple Overview**: List, select and remove the dotfiles currently being managed with `gart list`
-- **Bi-directional Sync**: Choose between 'push' (local to store) or 'pull' (store to local) sync modes
 - **Flexible Naming**: (Optional) assign custom names to your dotfiles for easier management (e.g., `gart add ~/.config/nvim nvim-backup`)
 - **Git Versioning:** (Optional) Git-based version control with templated, configurable commits and customizable branch names (default: hostname).
 - **Auto-Push:** (Optional) Push changes to the remote repository automatically.
@@ -138,7 +137,7 @@ dotfile = [
     "*.{jpg,png,gif}",   # Ignores common image files
 ]
 ```
-Note: The `.git/` directory is ignored by default.
+Note: All the `.git/` directories are ignored by default.
 
 ### Settings Section
 
@@ -148,7 +147,7 @@ The `[settings]` section contains global configuration options for Gart:
 [settings]
 git_versioning = true
 storage_path = "/home/user/.config/gart/.store"
-sync_mode = "push" # or "pull"
+reverse_sync = false
 
 [settings.git]
 auto_push = false
@@ -176,7 +175,7 @@ commit_message_format = "{{ .Action }} {{ .Dotfile }}"
 - [x] Version command
 - [x] Auto-push feature
 - [x] Ignore flag for the add command
-- [x] Sync mode (push/pull)
+- [x] Reverse sync mode
 - [ ] Status command to display the status of all the dotfiles (last commit, changes, etc.)
 - [ ] Remove command to remove a dotfile from the store
 - [ ] Update command to update Gart to the latest version
