@@ -31,7 +31,7 @@ func RunSyncView(app *app.App, ignores []string) {
 	}
 
 	// Check for changes before copying
-	changed, err := system.DiffFiles(sourcePath, storePath, ignores)
+	changed, err := system.DiffFiles(sourcePath, storePath, ignores, app.Config.Settings.ReverseSyncMode)
 	if err != nil {
 		fmt.Printf("Error comparing dotfiles: %v\n", err)
 		return
@@ -57,10 +57,12 @@ func RunSyncView(app *app.App, ignores []string) {
 			return
 		}
 
-		// Commit changes
-		if err := app.GitCommitChanges("Update", app.Dotfile.Name); err != nil {
-			fmt.Printf(" %s\n", errorStyle.Render(fmt.Sprintf("Error committing changes: %v", err)))
-			return
+		// Only commit changes if we're in push mode (not reverse sync)
+		if !app.Config.Settings.ReverseSyncMode {
+			if err := app.GitCommitChanges("Update", app.Dotfile.Name); err != nil {
+				fmt.Printf(" %s\n", errorStyle.Render(fmt.Sprintf("Error committing changes: %v", err)))
+				return
+			}
 		}
 
 		fmt.Printf(" %s\n", successStyle.Render("Success!"))
