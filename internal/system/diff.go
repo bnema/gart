@@ -7,10 +7,16 @@ import (
 	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
-// DiffFiles compares files or directories at origin and dest paths.
-// It returns true if changes were made, and false otherwise.
-func DiffFiles(origin, dest string, ignores []string) (bool, error) {
+// DiffFiles compares files or directories based on the sync mode.
+// If reverseSyncMode is true, the destination is considered the source.
+func DiffFiles(origin, dest string, ignores []string, reverseSyncMode bool) (bool, error) {
 	dmp := diffmatchpatch.New()
+
+	if reverseSyncMode {
+		// Pull mode (reverse sync)
+		return diffRecursive(dest, origin, dmp, ignores)
+	}
+	// Push mode (default)
 	return diffRecursive(origin, dest, dmp, ignores)
 }
 
