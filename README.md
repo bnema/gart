@@ -1,6 +1,6 @@
 # Gart - Dotfile Manager
 
-[Features](#features) • [Installation](#installation) • [Usage](#usage) • [Configuration](#configuration) • [Roadmap](#roadmap) • [License](#license)
+[Features](#features) • [Installation](#installation) • [Usage](#usage) • [[Configuration](#configuration) ](https://github.com/bnema/gart/releases/tag/v0.6.0)• [Roadmap](#roadmap) • [License](#license)
 
 Gart is a command-line tool written in Go that helps you manage and sync your dotfiles across different Linux systems.
 
@@ -68,19 +68,7 @@ gart add ~/.config/hypr Hyprland
 gart add ~/.config/fish --ignore "*.log" --ignore "cache/"
 ```
 
-The `--ignore` flag allows you to specify patterns for files or directories that should be excluded when adding or syncing dotfiles. You can specify multiple patterns by using the flag multiple times or by editing your `config.toml` file under the `[dotfiles.ignores]` section.
-
-Example usage:
-```bash
-gart add ~/.config/fish --ignore "*.log" --ignore "cache/"
-```
-
-Common ignore patterns:
-- `*.ext` - Files with specific extension (e.g., `*.log`, `*.tmp`)
-- `dir/` - Directory and its contents (e.g., `cache/`, `node_modules/`)
-- `**/pattern` - Pattern matching in any subdirectory (e.g., `**/temp`, `**/*.log`)
-- `*.{ext1,ext2}` - Multiple extensions (e.g., `*.{jpg,png}`)
-- `prefix*` or `*suffix` - Files/directories with prefix/suffix (e.g., `temp*`, `*_backup`)
+Note: The `--ignore` flag allows you to specify patterns for files or directories that should be excluded when adding or syncing dotfiles. You can specify multiple patterns by using the flag multiple times or by editing your `config.toml` file under the `[dotfiles.ignores]` section.
 
 To update/synchronize a specific dotfile, use the `sync` command followed by the name of the dotfile:
 ```
