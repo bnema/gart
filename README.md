@@ -1,8 +1,17 @@
 # Gart - Dotfile Manager
 
-[Features](#features) • [Installation](#installation) • [Usage](#usage) • [[Configuration](#configuration) ](https://github.com/bnema/gart/releases/tag/v0.6.0)• [Roadmap](#roadmap) • [License](#license)
-
 Gart is a command-line tool written in Go that helps you manage and sync your dotfiles across different Linux systems.
+
+![Demo Deploy](assets/demo.gif?raw=true)
+
+## Navigation
+
+- [Features](#features)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Configuration](#configuration)
+- [Roadmap](#roadmap)
+- [License](#license)
 
 ## Features
 - **Quick Addition**: Add a dotfile directory or a single file to Gart with a single command (e.g., `gart add ~/.config/zsh` or `gart add ~/.config/nvim/init.lua`)
@@ -12,8 +21,6 @@ Gart is a command-line tool written in Go that helps you manage and sync your do
 - **Flexible Naming**: (Optional) assign custom names to your dotfiles for easier management (e.g., `gart add ~/.config/nvim nvim-backup`)
 - **Git Versioning:** (Optional) Git-based version control with templated, configurable commits and customizable branch names (default: hostname).
 - **Auto-Push:** (Optional) Push changes to the remote repository automatically.
-
-![Demo Deploy](assets/demo.gif?raw=true)
 
 ## Installation
 
