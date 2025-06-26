@@ -96,7 +96,19 @@ This will display a list of all the dotfiles specified in the `config.toml` file
 
 ## Configuration
 
-Gart uses a `config.toml` file for configuration, which is automatically created in the default location (`$XDG_CONFIG_HOME/gart/config.toml`) if it doesn't exist. This file allows you to specify the dotfiles you want to manage and configure various settings.
+Gart uses a `config.toml` file for configuration, which is automatically created if it doesn't exist. The configuration and data storage locations follow platform-specific conventions:
+
+**Linux/Unix**: 
+- Config: `$XDG_CONFIG_HOME/gart/config.toml` (defaults to `~/.config/gart/config.toml`)
+- Data: `$XDG_DATA_HOME/gart/store/` (defaults to `~/.local/share/gart/store/`)
+
+**Windows**:
+- Config: `%APPDATA%\gart\config.toml`
+- Data: `%LOCALAPPDATA%\gart\store\`
+
+**macOS**:
+- Config: `~/Library/Preferences/gart/config.toml`
+- Data: `~/Library/Application Support/gart/store/`
 
 The configuration file is divided into two main sections: `[dotfiles]` and `[settings]`.
 
@@ -141,7 +153,7 @@ The `[settings]` section contains global configuration options for Gart:
 ```toml
 [settings]
 git_versioning = true
-storage_path = "/home/user/.config/gart/.store"
+storage_path = "/home/user/.local/share/gart/store"
 reverse_sync = false
 
 [settings.git]

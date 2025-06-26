@@ -95,18 +95,15 @@ func SaveConfig(configPath string, config *Config) error {
 
 // CreateDefaultConfig creates a default configuration
 func CreateDefaultConfig() (*Config, error) {
-	xdgConfigHome := os.Getenv("XDG_CONFIG_HOME")
-	if xdgConfigHome == "" {
-		homeDir, err := os.UserHomeDir()
-		if err != nil {
-			return nil, fmt.Errorf("error getting user home directory: %w", err)
-		}
-		xdgConfigHome = filepath.Join(homeDir, ".config")
+	gartConfigDir, configPath, err := system.GetConfigPaths()
+	if err != nil {
+		return nil, fmt.Errorf("error getting config paths: %w", err)
 	}
 
-	gartConfigDir := filepath.Join(xdgConfigHome, "gart")
-
-	configPath := filepath.Join(gartConfigDir, "config.toml")
+	gartDataDir, err := system.GetDataPaths()
+	if err != nil {
+		return nil, fmt.Errorf("error getting data paths: %w", err)
+	}
 
 	branchName, err := system.GetHostname()
 	if err != nil {
@@ -115,7 +112,7 @@ func CreateDefaultConfig() (*Config, error) {
 
 	config := &Config{
 		Settings: SettingsConfig{
-			StoragePath:     filepath.Join(gartConfigDir, ".store"),
+			StoragePath:     filepath.Join(gartDataDir, "store"),
 			ReverseSyncMode: false,
 			GitVersioning:   false,
 			Git: GitConfig{
