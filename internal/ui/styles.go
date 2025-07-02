@@ -1,24 +1,44 @@
 package ui
 
 import (
-	"fmt"
-
 	"github.com/charmbracelet/lipgloss"
 )
 
 var (
-	focusedStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("205"))
-	blurredStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
-	noStyle        = lipgloss.NewStyle()
-	helpStyle      = blurredStyle.Copy()
-	focusedButton  = focusedStyle.Copy().Render("[ Submit ]")
-	blurredButton  = fmt.Sprintf("[ %s ]", blurredStyle.Render("Submit"))
 	changedStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("255"))
 	unchangedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
 	successStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("82"))
 	errorStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("196"))
 	alertStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("208"))
-	infoStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("39"))
 	boldStyle      = lipgloss.NewStyle().Bold(true)
-	boldAndfocused = boldStyle.Copy().Foreground(lipgloss.Color("205"))
+
+	// Security risk level styles
+	criticalStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("196")).Bold(true)
+	highStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("208"))
+	mediumStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("214"))
+	lowStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("118"))
+
+	// Security scan styles
+	scanningStyle     = lipgloss.NewStyle().Foreground(lipgloss.Color("33"))
+	securityPassStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("82"))
 )
+
+// GetCriticalStyle returns the critical risk level style
+func GetCriticalStyle() lipgloss.Style {
+	return criticalStyle
+}
+
+// GetHighStyle returns the high risk level style
+func GetHighStyle() lipgloss.Style {
+	return highStyle
+}
+
+// GetMediumStyle returns the medium risk level style
+func GetMediumStyle() lipgloss.Style {
+	return mediumStyle
+}
+
+// GetLowStyle returns the low risk level style
+func GetLowStyle() lipgloss.Style {
+	return lowStyle
+}
