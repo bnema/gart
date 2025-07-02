@@ -74,14 +74,14 @@ func CopyFile(src, dst string, ignores []string) error {
 	if err != nil {
 		return fmt.Errorf("error opening source file: %v", err)
 	}
-	defer srcFile.Close()
+	defer func() { _ = srcFile.Close() }()
 
 	// Create the destination file
 	dstFile, err := os.Create(dst)
 	if err != nil {
 		return fmt.Errorf("error creating destination file: %v", err)
 	}
-	defer dstFile.Close()
+	defer func() { _ = dstFile.Close() }()
 
 	// Copy the file contents
 	_, err = io.Copy(dstFile, srcFile)

@@ -5,7 +5,6 @@ import (
 	"os/exec"
 )
 
-
 func GetEditor() string {
 	if editor := os.Getenv("EDITOR"); editor != "" {
 		return editor
