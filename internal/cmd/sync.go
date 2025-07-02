@@ -27,7 +27,10 @@ func syncAllDotfiles() {
 		appInstance.Dotfile.Path = path
 		// Get ignores for this dotfile
 		ignores := appInstance.Config.DotfilesIgnores[name]
-		ui.RunSyncView(appInstance, ignores)
+		if !ui.RunSyncView(appInstance, ignores) {
+			// User aborted sync, stop processing remaining dotfiles
+			break
+		}
 	}
 }
 
