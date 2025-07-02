@@ -10,3 +10,13 @@ store
 .store
 *.toml
 dist
+.serena/
+# Local files and directories
+*.local
+*.local/
+.local
+.local/
+**/*.local
+**/*.local/
+**/.*local
+**/.*local/
