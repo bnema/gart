@@ -12,7 +12,7 @@ type SecurityConfig struct {
 	Interactive     bool             `toml:"interactive"`
 
 	// Pattern exclusion configuration
-	PatternConfig PatternConfig `toml:"exclude_patterns"`
+	PatternConfig PatternConfig `toml:"pattern_config"`
 
 	// Content scanning configuration
 	ContentScan ContentScanConfig `toml:"content_scan"`
