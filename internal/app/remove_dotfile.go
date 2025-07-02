@@ -72,7 +72,7 @@ func (app *App) RemoveDotFile(path string, name string) error {
 	if err != nil {
 		return fmt.Errorf("error opening config file: %w", err)
 	}
-	defer f.Close()
+	defer f.Close() //nolint:errcheck
 
 	encoder := toml.NewEncoder(f)
 	if err := encoder.Encode(tree); err != nil {
