@@ -175,6 +175,45 @@ commit_message_format = "{{ .Action }} {{ .Dotfile }}"
     - `.Action`: The action performed (e.g., "Add", "Update", "Remove").
     - `.Dotfile`: The name of the dotfile being handled.
 
+### Security Configuration
+
+Gart includes comprehensive security scanning to detect sensitive information in dotfiles before adding them. The security features are enabled by default but can be customized or disabled entirely.
+
+```toml
+[settings.security]
+enabled = true              # Enable/disable security scanning entirely
+scan_content = true         # Enable/disable content scanning for secrets
+exclude_patterns = true     # Enable/disable pattern-based exclusions
+sensitivity = "medium"      # Sensitivity level: "low", "medium", "high", "paranoid"
+fail_on_secrets = true      # Fail when secrets are found (vs warning only)
+interactive = true          # Show interactive prompts for security findings
+
+[settings.security.content_scan]
+entropy_threshold = 4.5     # Minimum entropy for secret detection
+min_secret_length = 20      # Minimum length for potential secrets
+max_file_size = 5242880     # Maximum file size to scan (5MB)
+scan_binary_files = false   # Whether to scan binary files
+context_window = 50         # Lines of context around findings
+
+[settings.security.allowlist]
+patterns = ["TEST_*", "DEMO_*"]  # Allowed secret patterns
+files = ["test.env", "demo.config"]  # Files to skip scanning
+```
+
+**Security Features:**
+- **Multi-pattern Detection**: Identifies API keys (OpenAI, Anthropic, AWS, GitHub), JWT tokens, private keys, passwords, database URLs, and personal information
+- **Entropy Analysis**: Detects high-randomness strings that might be secrets
+- **Context-Aware Scanning**: Considers surrounding keywords for more accurate detection
+- **Risk Assessment**: Categorizes findings by severity (Critical/High/Medium/Low)
+- **Interactive Workflow**: Prompts for action when security issues are found
+- **Smart Deduplication**: Prevents duplicate findings
+
+**To completely disable security scanning:**
+```toml
+[settings.security]
+enabled = false
+```
+
 ## Roadmap
 - [x] Allow adding a single file
 - [x] Create a state with git after each detected change
@@ -184,6 +223,7 @@ commit_message_format = "{{ .Action }} {{ .Dotfile }}"
 - [x] Auto-push feature
 - [x] Ignore flag for the add command
 - [x] Reverse sync mode
+- [x] Security scanning for sensitive information
 - [ ] Status command to display the status of all the dotfiles (last commit, changes, etc.)
 - [ ] Remove command to remove a dotfile from the store
 - [ ] Update command to update Gart to the latest version
