@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 
 	"github.com/bnema/gart/internal/app"
+	"github.com/bnema/gart/internal/security"
 )
 
 func RunAddDotfileView(app *app.App, path string, dotfileName string, ignores []string) {
@@ -13,20 +14,60 @@ func RunAddDotfileView(app *app.App, path string, dotfileName string, ignores []
 
 	fmt.Printf("Adding dotfile %s... ", dotfileName)
 
-	var err error
-	if app.IsDir(path) {
-		err = addDotfileDir(app, cleanedPath, dotfileName, ignores)
-	} else {
-		err = addDotfileFile(app, cleanedPath, dotfileName, ignores)
-	}
+	// Create security context and scan path
+	securityConfig := security.DefaultSecurityConfig()
+	securityCtx := security.NewSecurityContext(securityConfig)
 
+	// Scan for security issues before adding
+	report, err := securityCtx.ScanPath(cleanedPath, ignores)
 	if err != nil {
-		fmt.Println(errorStyle.Render("Error!"))
-		fmt.Println(err)
+		fmt.Println(errorStyle.Render("Security scan failed!"))
+		fmt.Println("Error:", err)
 		return
 	}
 
-	if err := app.GitCommitChanges("Add", dotfileName); err != nil {
+	// Handle security findings interactively
+	if report.TotalFindings > 0 {
+		DisplaySecurityFindings(report)
+
+		proceed, err := securityCtx.InteractivePrompt(report)
+		if err != nil {
+			fmt.Println(errorStyle.Render("Error!"))
+			fmt.Println("Security check failed:", err)
+			return
+		}
+		if !proceed {
+			fmt.Println("⚠️  Add operation cancelled due to security concerns")
+			return
+		}
+
+		// Get additional ignores based on security findings
+		securityIgnores := securityCtx.GetSecurityIgnores(report)
+		ignores = append(ignores, securityIgnores...)
+	}
+
+	var addErr error
+	if app.IsDir(path) {
+		addErr = addDotfileDir(app, cleanedPath, dotfileName, ignores)
+	} else {
+		addErr = addDotfileFile(app, cleanedPath, dotfileName, ignores)
+	}
+
+	if addErr != nil {
+		fmt.Println(errorStyle.Render("Error!"))
+		fmt.Println(addErr)
+		return
+	}
+
+	// Create commit message with security status
+	commitMsg := fmt.Sprintf("Add %s", dotfileName)
+	if report.TotalFindings > 0 {
+		commitMsg += fmt.Sprintf(" (security: %d findings, risk: %s)", report.TotalFindings, report.HighestRisk)
+	} else {
+		commitMsg += " (security: clean)"
+	}
+
+	if err := app.GitCommitChanges("Add", commitMsg); err != nil {
 		fmt.Println(errorStyle.Render("Error!"))
 		fmt.Println("Error committing changes:", err)
 		return
