@@ -819,16 +819,22 @@ func (d *Detector) inferSecretType(keyword, value string) SecretType {
 func (d *Detector) getRiskLevel(secretType SecretType, confidence float64) RiskLevel {
 	// Base risk level by secret type
 	baseRisk := map[SecretType]RiskLevel{
-		SecretTypePrivateKey:  RiskLevelCritical,
-		SecretTypeAWSKey:      RiskLevelCritical,
-		SecretTypeDatabaseURL: RiskLevelHigh,
-		SecretTypePassword:    RiskLevelHigh,
-		SecretTypeAPIKey:      RiskLevelHigh,
-		SecretTypeToken:       RiskLevelMedium,
-		SecretTypeJWT:         RiskLevelMedium,
-		SecretTypeGeneric:     RiskLevelMedium,
-		SecretTypeEmail:       RiskLevelLow,
-		SecretTypeIPAddress:   RiskLevelLow,
+		SecretTypePrivateKey:    RiskLevelCritical,
+		SecretTypeAWSKey:        RiskLevelCritical,
+		SecretTypeDatabaseURL:   RiskLevelHigh,
+		SecretTypePassword:      RiskLevelHigh,
+		SecretTypeAPIKey:        RiskLevelHigh,
+		SecretTypeAnthropicKey:  RiskLevelHigh,
+		SecretTypeGenericAPIKey: RiskLevelHigh,
+		SecretTypeGitHubToken:   RiskLevelHigh,
+		SecretTypeToken:         RiskLevelMedium,
+		SecretTypeJWT:           RiskLevelMedium,
+		SecretTypeGeneric:       RiskLevelMedium,
+		SecretTypePII:           RiskLevelMedium,
+		SecretTypeCreditCard:    RiskLevelLow,
+		SecretTypeSSN:           RiskLevelLow,
+		SecretTypeEmail:         RiskLevelLow,
+		SecretTypeIPAddress:     RiskLevelLow,
 	}
 
 	risk := baseRisk[secretType]
