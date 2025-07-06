@@ -15,6 +15,7 @@ Gart is a command-line tool written in Go that helps you manage and sync your do
 
 ## Features
 - **Quick Addition**: Add a dotfile directory or a single file to Gart with a single command (e.g., `gart add ~/.config/zsh` or `gart add ~/.config/nvim/init.lua`)
+- **Security Scanning**: Automatically detects sensitive information (API keys, passwords, tokens, etc.) in dotfiles before adding them to prevent accidental exposure
 - **Ignore Patterns**: Exclude specific files or directories using the `--ignore` flag (e.g., `gart add ~/.config/nvim --ignore "init.bak" --ignore "doc/"`)
 - **Easy sync**: Use the sync command to detect changes in all your managed dotfiles and backup them automatically (e.g., `gart sync` or for a single dotfile `gart sync nvim`)
 - **Simple Overview**: List, select and remove the dotfiles currently being managed with `gart list`
