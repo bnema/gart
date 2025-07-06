@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/bnema/gart/internal/security"
 	"github.com/bnema/gart/internal/system"
 	"github.com/pelletier/go-toml"
 )
@@ -18,10 +19,11 @@ type Config struct {
 
 // SettingsConfig represents the general settings of the application
 type SettingsConfig struct {
-	StoragePath     string    `toml:"storage_path"`
-	GitVersioning   bool      `toml:"git_versioning"`
-	ReverseSyncMode bool      `toml:"reverse_sync"`
-	Git             GitConfig `toml:"git"`
+	StoragePath     string                   `toml:"storage_path"`
+	GitVersioning   bool                     `toml:"git_versioning"`
+	ReverseSyncMode bool                     `toml:"reverse_sync"`
+	Git             GitConfig                `toml:"git"`
+	Security        *security.SecurityConfig `toml:"security,omitempty"`
 }
 
 // GitConfig represents the structure of the git configuration
@@ -53,6 +55,11 @@ func LoadConfig(configPath string) (*Config, error) {
 	}
 	if config.DotfilesIgnores == nil {
 		config.DotfilesIgnores = make(map[string][]string)
+	}
+
+	// Ensure Security config is initialized with defaults if not present
+	if config.Settings.Security == nil {
+		config.Settings.Security = security.DefaultSecurityConfig()
 	}
 
 	return &config, nil
@@ -95,7 +102,7 @@ func SaveConfig(configPath string, config *Config) error {
 
 // CreateDefaultConfig creates a default configuration
 func CreateDefaultConfig() (*Config, error) {
-	gartConfigDir, configPath, err := system.GetConfigPaths()
+	_, configPath, err := system.GetConfigPaths()
 	if err != nil {
 		return nil, fmt.Errorf("error getting config paths: %w", err)
 	}
@@ -120,6 +127,7 @@ func CreateDefaultConfig() (*Config, error) {
 				CommitMessageFormat: "{{.Action}} {{.Dotfile}}",
 				AutoPush:            false,
 			},
+			Security: security.DefaultSecurityConfig(),
 		},
 		Dotfiles: make(map[string]string),
 	}
@@ -155,7 +163,7 @@ func UpdateDotfileIgnores(configPath string, name string, ignores []string) erro
 	if err != nil {
 		return fmt.Errorf("error opening config file: %w", err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	encoder := toml.NewEncoder(f)
 	err = encoder.Encode(tree)

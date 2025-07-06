@@ -32,7 +32,7 @@ func setupTestEnvironment(t *testing.T) (string, string, func()) {
 
 	// Cleanup function
 	cleanup := func() {
-		os.RemoveAll(tmpRoot)
+		_ = os.RemoveAll(tmpRoot)
 	}
 
 	return testDotfileDir, storageDir, cleanup
@@ -242,7 +242,7 @@ func TestCopyDirectory(t *testing.T) {
 	// Create a temporary test directory
 	tmpDir, err := os.MkdirTemp("", "copy-test-*")
 	assert.NoError(t, err)
-	defer os.RemoveAll(tmpDir)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	// Create source directory structure
 	srcDir := filepath.Join(tmpDir, "src")

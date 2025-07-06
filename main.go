@@ -18,14 +18,10 @@ func main() {
 		return
 	}
 
-	cfg, isFirstLaunch, err := checkFirstLaunch(configPath)
+	cfg, _, err := checkFirstLaunch(configPath)
 	if err != nil {
 		fmt.Printf("Error during configuration check: %v\n", err)
 		return
-	}
-
-	if isFirstLaunch {
-		// do something
 	}
 
 	app := &app.App{
