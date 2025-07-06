@@ -10,3 +10,5 @@ store
 .store
 *.toml
 dist
+.serena/
+docs.local/
