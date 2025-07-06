@@ -6,18 +6,19 @@ import (
 	"path/filepath"
 
 	"github.com/bnema/gart/internal/app"
+	"github.com/bnema/gart/internal/security"
 	"github.com/bnema/gart/internal/system"
 )
 
-// RunUpdateView is the function that runs the update (edit) dotfile view
-func RunSyncView(app *app.App, ignores []string) {
+// RunSyncView runs the sync view and returns whether to continue with additional syncs
+func RunSyncView(app *app.App, ignores []string) bool {
 	sourcePath := app.Dotfile.Path
 
 	// Check if the source is a file or directory
 	sourceInfo, err := os.Stat(sourcePath)
 	if err != nil {
 		fmt.Printf("Error accessing source path: %v\n", err)
-		return
+		return false
 	}
 
 	var storePath string
@@ -30,11 +31,44 @@ func RunSyncView(app *app.App, ignores []string) {
 		storePath = filepath.Join(app.StoragePath, app.Dotfile.Name+ext)
 	}
 
+	// Run security scan before checking for changes
+	securityContext := security.NewSecurityContext(app.Config.Settings.Security)
+
+	fmt.Printf("%s\n", scanningStyle.Render(fmt.Sprintf(" Running security scan for '%s'...", app.Dotfile.Name)))
+	securityReport, err := securityContext.ScanPath(sourcePath, ignores)
+	if err != nil {
+		fmt.Printf("Security scan error: %v\n", err)
+		return false
+	}
+
+	// Handle security findings
+	if securityReport.TotalFindings > 0 {
+		// Display the security report using UI styling
+		DisplaySecurityReport(securityReport)
+
+		proceed, err := securityContext.InteractivePrompt(securityReport)
+		if err != nil {
+			fmt.Printf("Error handling security prompt: %v\n", err)
+			return false
+		}
+
+		if !proceed {
+			fmt.Printf("Sync aborted due to security concerns.\n")
+			return false
+		}
+
+		// Add security-based ignores
+		securityIgnores := securityContext.GetSecurityIgnores(securityReport)
+		ignores = append(ignores, securityIgnores...)
+	} else {
+		fmt.Printf("%s\n", securityPassStyle.Render("󰸞 Security scan passed - no issues found."))
+	}
+
 	// Check for changes before copying
 	changed, err := system.DiffFiles(sourcePath, storePath, ignores, app.Config.Settings.ReverseSyncMode)
 	if err != nil {
 		fmt.Printf("Error comparing dotfiles: %v\n", err)
-		return
+		return false
 	}
 
 	if changed {
@@ -54,14 +88,14 @@ func RunSyncView(app *app.App, ignores []string) {
 
 		if err != nil {
 			fmt.Printf(" %s\n", errorStyle.Render(fmt.Sprintf("Error: %v", err)))
-			return
+			return false
 		}
 
 		// Only commit changes if we're in push mode (not reverse sync)
 		if !app.Config.Settings.ReverseSyncMode {
 			if err := app.GitCommitChanges("Update", app.Dotfile.Name); err != nil {
 				fmt.Printf(" %s\n", errorStyle.Render(fmt.Sprintf("Error committing changes: %v", err)))
-				return
+				return false
 			}
 		}
 
@@ -69,4 +103,5 @@ func RunSyncView(app *app.App, ignores []string) {
 	} else {
 		fmt.Println(unchangedStyle.Render(fmt.Sprintf("No changes detected in '%s' since the last update.", app.Dotfile.Name)))
 	}
+	return true
 }

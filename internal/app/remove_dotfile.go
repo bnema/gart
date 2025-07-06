@@ -66,13 +66,19 @@ func (app *App) RemoveDotFile(path string, name string) error {
 	// Store the name of the dotfile to be removed
 	removedDotfileName := keyToRemove
 
-	dotfilesTree.Delete(keyToRemove)
+	if err := dotfilesTree.Delete(keyToRemove); err != nil {
+		return fmt.Errorf("error removing dotfile key '%s' from config: %w", keyToRemove, err)
+	}
 
 	f, err := os.OpenFile(configFilePath, os.O_WRONLY|os.O_TRUNC, 0644)
 	if err != nil {
 		return fmt.Errorf("error opening config file: %w", err)
 	}
-	defer f.Close()
+	defer func() {
+		if closeErr := f.Close(); closeErr != nil {
+			fmt.Println("error closing config file:", closeErr)
+		}
+	}()
 
 	encoder := toml.NewEncoder(f)
 	if err := encoder.Encode(tree); err != nil {

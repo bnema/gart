@@ -12,3 +12,13 @@ store
 dist
 .serena/
 docs.local/
+
+# Local files and directories
+*.local
+*.local/
+.local
+.local/
+**/*.local
+**/*.local/
+**/.*local
+**/.*local/
