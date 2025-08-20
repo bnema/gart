@@ -38,14 +38,21 @@ func main() {
 
 	// If Git versioning is enabled, check if the repo exists and initialize if necessary
 	if app.Config.Settings.GitVersioning {
-		gitRepoExists, err := git.RepoExists(app.StoragePath)
+		// Create git repository instance
+		repo, err := git.NewRepository(app.StoragePath)
+		if err != nil {
+			fmt.Printf("Error creating git repository: %v\n", err)
+			return
+		}
+
+		gitRepoExists, err := repo.Exists()
 		if err != nil {
 			fmt.Printf("Error checking Git repository: %v\n", err)
 			return
 		}
 
 		if !gitRepoExists {
-			if err := initializeGitRepo(app); err != nil {
+			if err := initializeGitRepo(app, repo); err != nil {
 				fmt.Println(err)
 				return
 			}
@@ -64,13 +71,17 @@ func main() {
 }
 
 // initializeGitRepo initializes a new Git repository and creates an initial commit
-func initializeGitRepo(app *app.App) error {
-	if err := git.Init(app.StoragePath, app.Config.Settings.Git.Branch); err != nil {
+func initializeGitRepo(app *app.App, repo git.GitRepository) error {
+	if err := repo.Init(app.Config.Settings.Git.Branch); err != nil {
 		return fmt.Errorf("failed to initialize Git repository: %w", err)
 	}
 	fmt.Printf("Git repository initialized at %s (branch: %s)\n", app.StoragePath, app.Config.Settings.Git.Branch)
 
-	if err := git.CommitChanges(app.StoragePath, "Initial commit", "", ""); err != nil {
+	// Set the repository in the app so it can be used for the initial commit
+	app.SetGitRepository(repo)
+
+	// Create an initial commit using the app's GitCommitChanges method
+	if err := app.GitCommitChanges("Initialize", "repository"); err != nil {
 		return fmt.Errorf("failed to perform initial commit: %w", err)
 	}
 	fmt.Println("Initial commit created successfully")
