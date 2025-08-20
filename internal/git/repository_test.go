@@ -460,13 +460,19 @@ func TestRepository_getAuthMethod_HTTPSWithToken(t *testing.T) {
 	originalToken := os.Getenv("GIT_TOKEN")
 	defer func() {
 		if originalToken != "" {
-			os.Setenv("GIT_TOKEN", originalToken)
+			if err := os.Setenv("GIT_TOKEN", originalToken); err != nil {
+				t.Errorf("Failed to restore GIT_TOKEN: %v", err)
+			}
 		} else {
-			os.Unsetenv("GIT_TOKEN")
+			if err := os.Unsetenv("GIT_TOKEN"); err != nil {
+				t.Errorf("Failed to unset GIT_TOKEN: %v", err)
+			}
 		}
 	}()
 
-	os.Setenv("GIT_TOKEN", "test-token-123")
+	if err := os.Setenv("GIT_TOKEN", "test-token-123"); err != nil {
+		t.Fatalf("Failed to set GIT_TOKEN: %v", err)
+	}
 
 	r := repo.(*Repository)
 	auth, err := r.getAuthMethod("https://github.com/user/repo.git")
@@ -484,19 +490,31 @@ func TestRepository_getAuthMethod_HTTPSWithCredentials(t *testing.T) {
 	originalPassword := os.Getenv("GIT_PASSWORD")
 	defer func() {
 		if originalUsername != "" {
-			os.Setenv("GIT_USERNAME", originalUsername)
+			if err := os.Setenv("GIT_USERNAME", originalUsername); err != nil {
+				t.Errorf("Failed to restore GIT_USERNAME: %v", err)
+			}
 		} else {
-			os.Unsetenv("GIT_USERNAME")
+			if err := os.Unsetenv("GIT_USERNAME"); err != nil {
+				t.Errorf("Failed to unset GIT_USERNAME: %v", err)
+			}
 		}
 		if originalPassword != "" {
-			os.Setenv("GIT_PASSWORD", originalPassword)
+			if err := os.Setenv("GIT_PASSWORD", originalPassword); err != nil {
+				t.Errorf("Failed to restore GIT_PASSWORD: %v", err)
+			}
 		} else {
-			os.Unsetenv("GIT_PASSWORD")
+			if err := os.Unsetenv("GIT_PASSWORD"); err != nil {
+				t.Errorf("Failed to unset GIT_PASSWORD: %v", err)
+			}
 		}
 	}()
 
-	os.Setenv("GIT_USERNAME", "testuser")
-	os.Setenv("GIT_PASSWORD", "testpass")
+	if err := os.Setenv("GIT_USERNAME", "testuser"); err != nil {
+		t.Fatalf("Failed to set GIT_USERNAME: %v", err)
+	}
+	if err := os.Setenv("GIT_PASSWORD", "testpass"); err != nil {
+		t.Fatalf("Failed to set GIT_PASSWORD: %v", err)
+	}
 
 	r := repo.(*Repository)
 	auth, err := r.getAuthMethod("https://github.com/user/repo.git")
@@ -515,19 +533,31 @@ func TestRepository_getAuthMethod_HTTPSNoCredentials(t *testing.T) {
 	originalPassword := os.Getenv("GIT_PASSWORD")
 	defer func() {
 		if originalToken != "" {
-			os.Setenv("GIT_TOKEN", originalToken)
+			if err := os.Setenv("GIT_TOKEN", originalToken); err != nil {
+				t.Errorf("Failed to restore GIT_TOKEN: %v", err)
+			}
 		}
 		if originalUsername != "" {
-			os.Setenv("GIT_USERNAME", originalUsername)
+			if err := os.Setenv("GIT_USERNAME", originalUsername); err != nil {
+				t.Errorf("Failed to restore GIT_USERNAME: %v", err)
+			}
 		}
 		if originalPassword != "" {
-			os.Setenv("GIT_PASSWORD", originalPassword)
+			if err := os.Setenv("GIT_PASSWORD", originalPassword); err != nil {
+				t.Errorf("Failed to restore GIT_PASSWORD: %v", err)
+			}
 		}
 	}()
 
-	os.Unsetenv("GIT_TOKEN")
-	os.Unsetenv("GIT_USERNAME")
-	os.Unsetenv("GIT_PASSWORD")
+	if err := os.Unsetenv("GIT_TOKEN"); err != nil {
+		t.Errorf("Failed to unset GIT_TOKEN: %v", err)
+	}
+	if err := os.Unsetenv("GIT_USERNAME"); err != nil {
+		t.Errorf("Failed to unset GIT_USERNAME: %v", err)
+	}
+	if err := os.Unsetenv("GIT_PASSWORD"); err != nil {
+		t.Errorf("Failed to unset GIT_PASSWORD: %v", err)
+	}
 
 	r := repo.(*Repository)
 	auth, err := r.getAuthMethod("https://github.com/user/repo.git")
