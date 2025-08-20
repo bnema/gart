@@ -5,13 +5,15 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
-	"github.com/go-git/go-billy/v5/osfs"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
-	"github.com/go-git/go-git/v5/storage/filesystem"
+	"github.com/go-git/go-git/v5/plumbing/transport"
+	"github.com/go-git/go-git/v5/plumbing/transport/http"
+	"github.com/go-git/go-git/v5/plumbing/transport/ssh"
 )
 
 // Repository implements GitRepository using go-git library
@@ -39,22 +41,32 @@ func (r *Repository) Init(branch string) error {
 		return fmt.Errorf("failed to create directory: %w", err)
 	}
 
-	// Create filesystem and storage
-	fs := osfs.New(r.workingDir)
-	storage := filesystem.NewStorage(fs, nil)
+	// Check if repository already exists
+	if exists, err := r.Exists(); err != nil {
+		return fmt.Errorf("failed to check if repository exists: %w", err)
+	} else if exists {
+		// Repository already exists, just open it
+		repo, err := git.PlainOpen(r.workingDir)
+		if err != nil {
+			return fmt.Errorf("failed to open existing repository: %w", err)
+		}
+		r.repo = repo
+		return nil
+	}
 
-	// Initialize the repository
-	repo, err := git.Init(storage, fs)
+	// Initialize new repository using PlainInit
+	repo, err := git.PlainInit(r.workingDir, false)
 	if err != nil {
 		return fmt.Errorf("failed to initialize git repository: %w", err)
 	}
 
 	r.repo = repo
 
-	// Set the initial branch name if specified
-	if branch != "" {
+	// Set the initial branch name if specified and different from default
+	if branch != "" && branch != "master" {
+		// Set HEAD to point to the desired branch before any commits are made
 		headRef := plumbing.NewSymbolicReference(plumbing.HEAD, plumbing.ReferenceName("refs/heads/"+branch))
-		if err := r.repo.Storer.SetReference(headRef); err != nil {
+		if err := repo.Storer.SetReference(headRef); err != nil {
 			return fmt.Errorf("failed to set initial branch to %s: %w", branch, err)
 		}
 	}
@@ -68,11 +80,16 @@ func (r *Repository) openRepository() error {
 		return nil
 	}
 
-	fs := osfs.New(r.workingDir)
-	storage := filesystem.NewStorage(fs, nil)
-
-	repo, err := git.Open(storage, fs)
+	// Use PlainOpen for reliable repository opening
+	repo, err := git.PlainOpen(r.workingDir)
 	if err != nil {
+		if err == git.ErrRepositoryNotExists {
+			return &GitError{
+				Op:   "open",
+				Path: r.workingDir,
+				Err:  ErrNotRepository,
+			}
+		}
 		return fmt.Errorf("failed to open git repository: %w", err)
 	}
 
@@ -97,9 +114,18 @@ func (r *Repository) Add(patterns ...string) error {
 	}
 
 	for _, pattern := range patterns {
-		_, err := worktree.Add(pattern)
-		if err != nil {
-			return fmt.Errorf("failed to add pattern %s: %w", pattern, err)
+		// Check if pattern contains wildcards, use AddGlob for patterns
+		if strings.Contains(pattern, "*") || strings.Contains(pattern, "?") || strings.Contains(pattern, "[") {
+			err := worktree.AddGlob(pattern)
+			if err != nil {
+				return fmt.Errorf("failed to add glob pattern %s: %w", pattern, err)
+			}
+		} else {
+			// Use regular Add for exact paths
+			_, err := worktree.Add(pattern)
+			if err != nil {
+				return fmt.Errorf("failed to add path %s: %w", pattern, err)
+			}
 		}
 	}
 
@@ -167,8 +193,37 @@ func (r *Repository) PushContext(ctx context.Context) error {
 		}
 	}
 
+	// Get the first available remote
+	remotes, err := r.repo.Remotes()
+	if err != nil {
+		return fmt.Errorf("failed to get remotes: %w", err)
+	}
+
+	if len(remotes) == 0 {
+		return &GitError{
+			Op:   "push",
+			Path: r.workingDir,
+			Err:  ErrNoRemote,
+		}
+	}
+
+	// Use the first available remote
+	remoteName := remotes[0].Config().Name
+	remoteConfig := remotes[0].Config()
+	
+	// Get authentication for the remote URL
+	var auth transport.AuthMethod
+	if len(remoteConfig.URLs) > 0 {
+		auth, err = r.getAuthMethod(remoteConfig.URLs[0])
+		if err != nil {
+			// Log the auth error but continue without auth (might work for public repos)
+			// TODO: Add proper logging
+		}
+	}
+
 	err = r.repo.PushContext(ctx, &git.PushOptions{
-		RemoteName: "origin",
+		RemoteName: remoteName,
+		Auth:       auth,
 	})
 	if err != nil {
 		// Check if it's a "no changes" error, which is not actually an error
@@ -205,7 +260,7 @@ func (r *Repository) Status() ([]string, error) {
 	return files, nil
 }
 
-// HasRemote checks if a remote named "origin" is configured
+// HasRemote checks if any remote is configured
 func (r *Repository) HasRemote() (bool, error) {
 	if err := r.openRepository(); err != nil {
 		return false, err
@@ -216,13 +271,7 @@ func (r *Repository) HasRemote() (bool, error) {
 		return false, fmt.Errorf("failed to get remotes: %w", err)
 	}
 
-	for _, remote := range remotes {
-		if remote.Config().Name == "origin" {
-			return true, nil
-		}
-	}
-
-	return false, nil
+	return len(remotes) > 0, nil
 }
 
 // SetRemote sets a remote repository URL
@@ -259,4 +308,103 @@ func (r *Repository) Exists() (bool, error) {
 		return false, nil
 	}
 	return false, err
+}
+
+// getAuthMethod attempts to get appropriate authentication for git operations
+func (r *Repository) getAuthMethod(remoteURL string) (transport.AuthMethod, error) {
+	if strings.HasPrefix(remoteURL, "https://") {
+		// Try to get credentials from git config or environment
+		return r.getHTTPSAuth()
+	} else if strings.HasPrefix(remoteURL, "git@") || strings.Contains(remoteURL, "ssh://") {
+		// SSH authentication
+		return r.getSSHAuth()
+	}
+	
+	// No authentication needed for local or other protocols
+	return nil, nil
+}
+
+// getSSHAuth attempts to authenticate using SSH agent first, then SSH keys
+func (r *Repository) getSSHAuth() (transport.AuthMethod, error) {
+	// Try SSH agent first (most common and convenient)
+	sshAgent, err := ssh.NewSSHAgentAuth("git")
+	if err == nil {
+		return sshAgent, nil
+	}
+	
+	// SSH agent failed, try SSH keys from standard locations
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user home directory: %w", err)
+	}
+	
+	// Try different SSH key files in order of preference
+	keyPaths := []string{
+		filepath.Join(homeDir, ".ssh", "id_ed25519"),
+		filepath.Join(homeDir, ".ssh", "id_rsa"),
+		filepath.Join(homeDir, ".ssh", "id_ecdsa"),
+	}
+	
+	for _, keyPath := range keyPaths {
+		if _, err := os.Stat(keyPath); err == nil {
+			// Try without passphrase first
+			publicKeys, err := ssh.NewPublicKeysFromFile("git", keyPath, "")
+			if err == nil {
+				return publicKeys, nil
+			}
+			
+			// If that fails, the key probably has a passphrase
+			// For now, we'll skip passphrase-protected keys
+			// TODO: Implement interactive passphrase prompting
+		}
+	}
+	
+	return nil, fmt.Errorf("no suitable SSH authentication method found")
+}
+
+// getHTTPSAuth attempts to get HTTPS authentication from git config or environment
+func (r *Repository) getHTTPSAuth() (transport.AuthMethod, error) {
+	// Try to get credentials from environment variables
+	if token := os.Getenv("GIT_TOKEN"); token != "" {
+		return &http.BasicAuth{
+			Username: "token", // GitHub personal access token format
+			Password: token,
+		}, nil
+	}
+	
+	if username := os.Getenv("GIT_USERNAME"); username != "" {
+		password := os.Getenv("GIT_PASSWORD")
+		return &http.BasicAuth{
+			Username: username,
+			Password: password,
+		}, nil
+	}
+	
+	// TODO: Read from .gitconfig or credential helpers
+	// For now, return nil to attempt unauthenticated access
+	return nil, nil
+}
+
+// getRemoteURL gets the URL of the first available remote
+func (r *Repository) getRemoteURL() (string, error) {
+	if err := r.openRepository(); err != nil {
+		return "", err
+	}
+	
+	remotes, err := r.repo.Remotes()
+	if err != nil {
+		return "", fmt.Errorf("failed to get remotes: %w", err)
+	}
+	
+	if len(remotes) == 0 {
+		return "", fmt.Errorf("no remotes configured")
+	}
+	
+	// Get the first URL from the first remote
+	config := remotes[0].Config()
+	if len(config.URLs) == 0 {
+		return "", fmt.Errorf("remote has no URLs")
+	}
+	
+	return config.URLs[0], nil
 }
