@@ -15,7 +15,7 @@ Gart is a command-line tool written in Go that helps you manage and sync your do
 
 ## Features
 - **Quick Addition**: Add a dotfile directory or a single file to Gart with a single command (e.g., `gart add ~/.config/zsh` or `gart add ~/.config/nvim/init.lua`)
-- **Security Scanning**: Automatically detects sensitive information (API keys, passwords, tokens, etc.) in dotfiles before adding them to prevent accidental exposure
+- **Security Scanning**: Detects sensitive information like API keys, passwords, and tokens in your dotfiles before syncing
 - **Ignore Patterns**: Exclude specific files or directories using the `--ignore` flag (e.g., `gart add ~/.config/nvim --ignore "init.bak" --ignore "doc/"`)
 - **Easy sync**: Use the sync command to detect changes in all your managed dotfiles and backup them automatically (e.g., `gart sync` or for a single dotfile `gart sync nvim`)
 - **Simple Overview**: List, select and remove the dotfiles currently being managed with `gart list`
@@ -87,6 +87,13 @@ This will detect changes in the specified dotfile and save the updated version t
 To sync all the dotfiles specified in the `config.toml` file, simply run:
 ```
 gart sync
+```
+
+To skip security scanning (useful when you're sure your files are clean or for private repos):
+```
+gart sync --no-security
+# or for a specific dotfile
+gart sync nvim --no-security
 ```
 
 To list all the dotfiles currently being managed by Gart, use the `list` command:
@@ -200,18 +207,23 @@ patterns = ["TEST_*", "DEMO_*"]  # Allowed secret patterns
 files = ["test.env", "demo.config"]  # Files to skip scanning
 ```
 
-**Security Features:**
-- **Multi-pattern Detection**: Identifies API keys (OpenAI, Anthropic, AWS, GitHub), JWT tokens, private keys, passwords, database URLs, and personal information
-- **Entropy Analysis**: Detects high-randomness strings that might be secrets
-- **Context-Aware Scanning**: Considers surrounding keywords for more accurate detection
-- **Risk Assessment**: Categorizes findings by severity (Critical/High/Medium/Low)
-- **Interactive Workflow**: Prompts for action when security issues are found
-- **Smart Deduplication**: Prevents duplicate findings
+**What the security scanner does:**
+- Finds API keys, tokens, passwords, and other secrets in your files
+- Recognizes common patterns like AWS keys, GitHub tokens, JWT tokens, etc.
+- Avoids flagging normal config text, UI descriptions, and documentation
+- Shows you what it found and lets you decide what to do
+- Groups findings by how serious they are (Critical/High/Medium/Low)
 
 **To completely disable security scanning:**
 ```toml
 [settings.security]
 enabled = false
+```
+
+**To skip security scanning for specific syncs:**
+```bash
+gart sync --no-security        # Skip for all dotfiles
+gart sync nvim --no-security   # Skip for one dotfile
 ```
 
 ## Roadmap
@@ -224,6 +236,7 @@ enabled = false
 - [x] Ignore flag for the add command
 - [x] Reverse sync mode
 - [x] Security scanning for sensitive information
+- [x] Option to skip security scanning (--no-security flag)
 - [ ] Status command to display the status of all the dotfiles (last commit, changes, etc.)
 - [ ] Remove command to remove a dotfile from the store
 - [ ] Update command to update Gart to the latest version

@@ -11,7 +11,7 @@ import (
 )
 
 // RunSyncView runs the sync view and returns whether to continue with additional syncs
-func RunSyncView(app *app.App, ignores []string) bool {
+func RunSyncView(app *app.App, ignores []string, skipSecurity bool) bool {
 	sourcePath := app.Dotfile.Path
 
 	// Check if the source is a file or directory
@@ -31,37 +31,41 @@ func RunSyncView(app *app.App, ignores []string) bool {
 		storePath = filepath.Join(app.StoragePath, app.Dotfile.Name+ext)
 	}
 
-	// Run security scan before checking for changes
-	securityContext := security.NewSecurityContext(app.Config.Settings.Security)
+	// Run security scan before checking for changes (unless skipped)
+	if !skipSecurity {
+		securityContext := security.NewSecurityContext(app.Config.Settings.Security)
 
-	fmt.Printf("%s\n", scanningStyle.Render(fmt.Sprintf(" Running security scan for '%s'...", app.Dotfile.Name)))
-	securityReport, err := securityContext.ScanPath(sourcePath, ignores)
-	if err != nil {
-		fmt.Printf("Security scan error: %v\n", err)
-		return false
-	}
-
-	// Handle security findings
-	if securityReport.TotalFindings > 0 {
-		// Display the security report using UI styling
-		DisplaySecurityReport(securityReport)
-
-		proceed, err := securityContext.InteractivePrompt(securityReport)
+		fmt.Printf("%s\n", scanningStyle.Render(fmt.Sprintf(" Running security scan for '%s'...", app.Dotfile.Name)))
+		securityReport, err := securityContext.ScanPath(sourcePath, ignores)
 		if err != nil {
-			fmt.Printf("Error handling security prompt: %v\n", err)
+			fmt.Printf("Security scan error: %v\n", err)
 			return false
 		}
 
-		if !proceed {
-			fmt.Printf("Sync aborted due to security concerns.\n")
-			return false
-		}
+		// Handle security findings
+		if securityReport.TotalFindings > 0 {
+			// Display the security report using UI styling
+			DisplaySecurityReport(securityReport)
 
-		// Add security-based ignores
-		securityIgnores := securityContext.GetSecurityIgnores(securityReport)
-		ignores = append(ignores, securityIgnores...)
+			proceed, err := securityContext.InteractivePrompt(securityReport)
+			if err != nil {
+				fmt.Printf("Error handling security prompt: %v\n", err)
+				return false
+			}
+
+			if !proceed {
+				fmt.Printf("Sync aborted due to security concerns.\n")
+				return false
+			}
+
+			// Add security-based ignores
+			securityIgnores := securityContext.GetSecurityIgnores(securityReport)
+			ignores = append(ignores, securityIgnores...)
+		} else {
+			fmt.Printf("%s\n", securityPassStyle.Render("󰸞 Security scan passed - no issues found."))
+		}
 	} else {
-		fmt.Printf("%s\n", securityPassStyle.Render("󰸞 Security scan passed - no issues found."))
+		fmt.Printf("%s\n", scanningStyle.Render("Security scan skipped"))
 	}
 
 	// Check for changes before copying
