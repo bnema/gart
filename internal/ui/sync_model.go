@@ -68,6 +68,14 @@ func RunSyncView(app *app.App, ignores []string, skipSecurity bool) bool {
 		fmt.Printf("%s\n", scanningStyle.Render("Security scan skipped"))
 	}
 
+	// In reverse sync mode, check that store file exists before doing diff
+	if app.Config.Settings.ReverseSyncMode {
+		if _, err := os.Stat(storePath); os.IsNotExist(err) {
+			fmt.Printf("%s\n", errorStyle.Render(fmt.Sprintf("Store file doesn't exist for reverse sync: %s", storePath)))
+			return false
+		}
+	}
+
 	// Check for changes before copying
 	changed, err := system.DiffFiles(sourcePath, storePath, ignores, app.Config.Settings.ReverseSyncMode)
 	if err != nil {
@@ -76,17 +84,40 @@ func RunSyncView(app *app.App, ignores []string, skipSecurity bool) bool {
 	}
 
 	if changed {
-		fmt.Print(changedStyle.Render(fmt.Sprintf("Changes detected in '%s'. Updating...", app.Dotfile.Name)))
+		// Determine sync direction and display appropriate message
+		direction := "Updating store"
+		if app.Config.Settings.ReverseSyncMode {
+			direction = "Updating local config"
+		}
+		fmt.Print(changedStyle.Render(fmt.Sprintf("Changes detected in '%s'. %s...", app.Dotfile.Name, direction)))
 
 		var err error
-		if sourceInfo.IsDir() {
-			// Handle directory
-			err = system.CopyDirectory(sourcePath, storePath, ignores)
+		var fromPath, toPath string
+		
+		// Swap paths based on reverse sync mode
+		if app.Config.Settings.ReverseSyncMode {
+			// Pull mode: copy from store to local config
+			fromPath = storePath
+			toPath = sourcePath
 		} else {
-			// Handle single file
-			err = os.MkdirAll(filepath.Dir(storePath), 0755)
+			// Push mode: copy from local config to store
+			fromPath = sourcePath
+			toPath = storePath
+		}
+		
+		// Determine if source is directory (use fromPath not sourcePath)
+		fromInfo, err := os.Stat(fromPath)
+		if err != nil {
+			fmt.Printf(" %s\n", errorStyle.Render(fmt.Sprintf("Error accessing source: %v", err)))
+			return false
+		}
+		
+		if fromInfo.IsDir() {
+			err = system.CopyDirectory(fromPath, toPath, ignores)
+		} else {
+			err = os.MkdirAll(filepath.Dir(toPath), 0755)
 			if err == nil {
-				err = system.CopyFile(sourcePath, storePath, ignores)
+				err = system.CopyFile(fromPath, toPath, ignores)
 			}
 		}
 
@@ -105,7 +136,11 @@ func RunSyncView(app *app.App, ignores []string, skipSecurity bool) bool {
 
 		fmt.Printf(" %s\n", successStyle.Render("Success!"))
 	} else {
-		fmt.Println(unchangedStyle.Render(fmt.Sprintf("No changes detected in '%s' since the last update.", app.Dotfile.Name)))
+		location := "in store"
+		if app.Config.Settings.ReverseSyncMode {
+			location = "in local config"
+		}
+		fmt.Println(unchangedStyle.Render(fmt.Sprintf("No changes detected %s for '%s'.", location, app.Dotfile.Name)))
 	}
 	return true
 }
