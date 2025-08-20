@@ -51,18 +51,15 @@ func TestDefaultSecurityConfig(t *testing.T) {
 		t.Error("DefaultSecurityConfig() should not scan binary files by default")
 	}
 
-	// Test allowlist defaults
-	expectedPatterns := []string{"EXAMPLE_*", "DEMO_*", "TEST_*"}
-	if len(config.Allowlist.Patterns) != len(expectedPatterns) {
-		t.Errorf("DefaultSecurityConfig() allowlist patterns count = %d, want %d",
-			len(config.Allowlist.Patterns), len(expectedPatterns))
+	// Test allowlist defaults - should be empty by default to reduce config noise
+	if len(config.Allowlist.Patterns) != 0 {
+		t.Errorf("DefaultSecurityConfig() allowlist patterns count = %d, want 0 (empty by default)",
+			len(config.Allowlist.Patterns))
 	}
 
-	for i, expected := range expectedPatterns {
-		if i >= len(config.Allowlist.Patterns) || config.Allowlist.Patterns[i] != expected {
-			t.Errorf("DefaultSecurityConfig() allowlist pattern[%d] = %q, want %q",
-				i, config.Allowlist.Patterns[i], expected)
-		}
+	if len(config.Allowlist.Files) != 0 {
+		t.Errorf("DefaultSecurityConfig() allowlist files count = %d, want 0 (empty by default)",
+			len(config.Allowlist.Files))
 	}
 }
 

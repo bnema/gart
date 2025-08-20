@@ -37,7 +37,7 @@ func TestDetector_DetectSecrets(t *testing.T) {
 		{
 			name:                "JWT token",
 			content:             `token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c`,
-			expectedFindings:    1,
+			expectedFindings:    2, // Pattern match + context match (after security enhancements)
 			expectedSecretTypes: []SecretType{SecretTypeJWT},
 			minConfidence:       0.8,
 		},

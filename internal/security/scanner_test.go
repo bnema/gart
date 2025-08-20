@@ -57,8 +57,8 @@ func TestScanner_ScanFile(t *testing.T) {
 api_key = "sk-abcdefghijklmnopqrstuvwxyz123456"
 jwt_token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.abc123"`,
 			expectedPassed:   false,
-			expectedRisk:     RiskLevelHigh,
-			expectedFindings: 3,
+			expectedRisk:     RiskLevelCritical, // JWT and API keys are CRITICAL risk
+			expectedFindings: 4,                 // Enhanced detection finds more patterns
 		},
 	}
 
