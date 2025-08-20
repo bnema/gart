@@ -69,8 +69,20 @@ func DefaultSecurityConfig() *SecurityConfig {
 		},
 
 		Allowlist: AllowlistConfig{
-			Patterns: []string{"EXAMPLE_*", "DEMO_*", "TEST_*"},
-			Files:    []string{},
+			Patterns: []string{
+				"EXAMPLE_*", "DEMO_*", "TEST_*", 
+				"LOCAL_*",           // Local env vars
+				"function(*)",       // Function definitions
+				"*/plugin-name",     // Plugin patterns
+				"https://github.com/*", // Public GitHub URLs
+				"*/.git/*",          // Git internals
+			},
+			Files: []string{
+				".git/*",            // All git files
+				"*.test.js",         // Test files
+				"*.spec.js",
+				"*_test.go",
+			},
 		},
 	}
 }

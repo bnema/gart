@@ -2,6 +2,7 @@ package security
 
 import (
 	"fmt"
+	"path/filepath"
 	"regexp"
 	"strings"
 )
@@ -205,15 +206,38 @@ func (d *Detector) detectEntropySecrets(line string, lineNum int, filePath strin
 func (d *Detector) detectContextSecrets(lines []string, filePath string) []Finding {
 	var findings []Finding
 
+	// Add file extension check
+	ext := strings.ToLower(filepath.Ext(filePath))
+	isCodeFile := ext == ".lua" || ext == ".vim" || ext == ".py" || 
+	            ext == ".js" || ext == ".go" || ext == ".rs" ||
+	            ext == ".java" || ext == ".c" || ext == ".cpp"
+
 	for lineNum, line := range lines {
 		// Look for key-value patterns with sensitive keywords
 		for _, keyword := range d.contextKeywords {
 			if d.containsKeyword(line, keyword) {
 				values := d.extractValuesNearKeyword(line, keyword)
 				for _, value := range values {
+					// Skip if in code file and value looks like code
+					if isCodeFile && d.looksLikeCode(value) {
+						continue
+					}
+					
 					if len(value) >= 8 && !d.isPlaceholder(value) {
+						// Check if it's a public API endpoint
+						if d.isPublicAPIEndpoint(value, keyword) {
+							continue // Skip public API endpoints
+						}
+						
+						// Require higher confidence for common keywords
+						minConfidence := 0.5
+						if keyword == "config" || keyword == "server" || 
+						   keyword == "client" || keyword == "env" {
+							minConfidence = 0.7 // Higher bar for common terms
+						}
+						
 						confidence := d.calculateContextConfidence(keyword, value, line)
-						if confidence > 0.5 {
+						if confidence > minConfidence {
 							finding := Finding{
 								Type:       d.inferSecretType(keyword, value),
 								RawValue:   value,
@@ -233,6 +257,22 @@ func (d *Detector) detectContextSecrets(lines []string, filePath string) []Findi
 	}
 
 	return findings
+}
+
+// Helper function to detect code patterns
+func (d *Detector) looksLikeCode(value string) bool {
+	codePatterns := []string{
+		`function\s*\(`, `func\s*\(`, `\w+\.\w+`, `\w+\[`,
+		`->`, `=>`, `:=`, `==`, `!=`, `&&`, `\|\|`,
+		`return\s+`, `if\s+`, `for\s+`, `while\s+`,
+		`var\s+`, `let\s+`, `const\s+`, `def\s+`,
+	}
+	for _, pattern := range codePatterns {
+		if matched, _ := regexp.MatchString(pattern, value); matched {
+			return true
+		}
+	}
+	return false
 }
 
 func (d *Detector) extractSecretCandidates(line string) []string {
@@ -645,8 +685,26 @@ func (d *Detector) containsDictionaryWords(s string) bool {
 		}
 	}
 
-	// Lower threshold - if we find any dictionary words or config patterns, it's likely not a secret
-	return wordCount > 0 || patternCount > 0
+	// Check proportion of dictionary content - if >40% is dictionary words, likely not a secret
+	totalLength := len(s)
+	if totalLength == 0 {
+		return false
+	}
+	
+	dictionaryLength := 0
+	for _, word := range commonWords {
+		if idx := strings.Index(lower, word); idx >= 0 {
+			dictionaryLength += len(word)
+		}
+	}
+	for _, pattern := range commonPatterns {
+		if idx := strings.Index(lower, pattern); idx >= 0 {
+			dictionaryLength += len(pattern)
+		}
+	}
+	
+	// If >40% is dictionary words/patterns, likely not a secret
+	return float64(dictionaryLength) / float64(totalLength) > 0.4
 }
 
 func (d *Detector) containsKeyword(line, keyword string) bool {
@@ -656,6 +714,23 @@ func (d *Detector) containsKeyword(line, keyword string) bool {
 
 func (d *Detector) extractValuesNearKeyword(line, keyword string) []string {
 	var values []string
+
+	// Skip common programming constructs that shouldn't be flagged as secrets
+	programmingPatterns := []string{
+		`function\s*\([^)]*\)`,      // function definitions
+		`func\s*\([^)]*\)`,          // Go functions  
+		`lambda\s*[^:]*:`,           // Python lambdas
+		`\w+\.\w+\([^)]*\)`,         // method calls
+		`\w+\[['"]?\w+['"]?\]`,      // array/map access
+		`vim\.\w+`,                  // Vim API calls
+		`require\s*\(['"][^'"]+['"]\)`, // require statements
+	}
+	
+	for _, pattern := range programmingPatterns {
+		if matched, _ := regexp.MatchString(pattern, line); matched {
+			return values // Return empty, these aren't secrets
+		}
+	}
 
 	// Special handling for "env = VARNAME, value" pattern (common in Hyprland and other configs)
 	if strings.ToLower(keyword) == "env" {
@@ -688,40 +763,42 @@ func (d *Detector) extractValuesNearKeyword(line, keyword string) []string {
 }
 
 func (d *Detector) calculatePatternConfidence(secretType SecretType, value, context string) float64 {
-	// Adjust based on secret type
-	var base float64
+	// Perfect pattern matches get 100% confidence
 	switch secretType {
-	case SecretTypePrivateKey:
-		base = 0.95
-	case SecretTypeAWSKey:
-		base = 0.9
-	case SecretTypeJWT:
-		base = 0.85
+	case SecretTypePrivateKey, SecretTypeAWSKey, SecretTypeAnthropicKey, 
+		 SecretTypeAPIKey, SecretTypeGenericAPIKey, SecretTypeGitHubToken, SecretTypeJWT:
+		return 1.0  // 100% confidence for known secret patterns
 	case SecretTypeDatabaseURL:
-		base = 0.85
+		return 0.95 // Very high confidence for DB URLs
 	case SecretTypeCreditCard:
-		base = 0.9
+		return 0.9  // High confidence for credit cards
 	case SecretTypePassword:
-		base = 0.7
+		// Passwords are context-dependent, keep variable confidence
+		base := 0.7
+		if d.hasSecretContext(context) {
+			base += 0.1
+		}
+		if len(value) > 40 {
+			base += 0.05
+		}
+		if d.isPlaceholder(value) {
+			base -= 0.5
+		}
+		return min(base, 1.0)
 	default:
-		base = 0.75
+		// Generic secrets get variable confidence
+		base := 0.75
+		if d.hasSecretContext(context) {
+			base += 0.1
+		}
+		if len(value) > 40 {
+			base += 0.05
+		}
+		if d.isPlaceholder(value) {
+			base -= 0.5
+		}
+		return min(base, 1.0)
 	}
-
-	// Adjust based on context
-	if d.hasSecretContext(context) {
-		base += 0.1
-	}
-
-	// Adjust based on value characteristics
-	if len(value) > 40 {
-		base += 0.05
-	}
-
-	if d.isPlaceholder(value) {
-		base -= 0.5
-	}
-
-	return min(base, 1.0)
 }
 
 func (d *Detector) calculateContextConfidence(keyword, value, context string) float64 {
@@ -821,14 +898,14 @@ func (d *Detector) getRiskLevel(secretType SecretType, confidence float64) RiskL
 	baseRisk := map[SecretType]RiskLevel{
 		SecretTypePrivateKey:    RiskLevelCritical,
 		SecretTypeAWSKey:        RiskLevelCritical,
+		SecretTypeAnthropicKey:  RiskLevelCritical,
+		SecretTypeAPIKey:        RiskLevelCritical,
+		SecretTypeGenericAPIKey: RiskLevelCritical,
+		SecretTypeGitHubToken:   RiskLevelCritical,
+		SecretTypeJWT:           RiskLevelCritical,
 		SecretTypeDatabaseURL:   RiskLevelHigh,
 		SecretTypePassword:      RiskLevelHigh,
-		SecretTypeAPIKey:        RiskLevelHigh,
-		SecretTypeAnthropicKey:  RiskLevelHigh,
-		SecretTypeGenericAPIKey: RiskLevelHigh,
-		SecretTypeGitHubToken:   RiskLevelHigh,
 		SecretTypeToken:         RiskLevelMedium,
-		SecretTypeJWT:           RiskLevelMedium,
 		SecretTypeGeneric:       RiskLevelMedium,
 		SecretTypePII:           RiskLevelMedium,
 		SecretTypeCreditCard:    RiskLevelLow,
@@ -1038,6 +1115,25 @@ func (d *Detector) SetSensitivity(level SensitivityLevel) {
 	}
 }
 
+// isPublicAPIEndpoint checks if a value is a public API endpoint (not a secret)
+func (d *Detector) isPublicAPIEndpoint(value string, keyword string) bool {
+	if keyword == "endpoint" || keyword == "url" || keyword == "api" {
+		lower := strings.ToLower(value)
+		// Check if it's just a base URL without secrets
+		if regexp.MustCompile(`^https?://[a-z0-9.-]+\.(com|org|net|io)/?$`).MatchString(lower) {
+			return true // Just a domain, not a secret
+		}
+		// Check for URL with path but no query params or auth
+		if regexp.MustCompile(`^https?://[^?@]+$`).MatchString(lower) && 
+		   !strings.Contains(lower, "token") && 
+		   !strings.Contains(lower, "key") &&
+		   !strings.Contains(lower, "secret") {
+			return true // URL without sensitive params
+		}
+	}
+	return false
+}
+
 // Utility functions
 
 func extractQuotedStrings(line string) []string {
@@ -1087,6 +1183,24 @@ func min(a, b float64) float64 {
 func (d *Detector) isCommonConfigPattern(candidate, context string) bool {
 	lower := strings.ToLower(candidate)
 	lowerContext := strings.ToLower(context)
+
+	// GitHub repository patterns (owner/repo)
+	if matched := regexp.MustCompile(`^[a-zA-Z0-9_-]+/[a-zA-Z0-9_.-]+$`).MatchString(candidate); matched {
+		return true
+	}
+	
+	// Public repository URLs
+	if strings.HasPrefix(lower, "https://github.com/") || 
+	   strings.HasPrefix(lower, "https://gitlab.com/") ||
+	   strings.HasPrefix(lower, "https://bitbucket.org/") {
+		return true
+	}
+	
+	// Function definitions and method calls
+	if strings.Contains(lower, "function(") || 
+	   regexp.MustCompile(`\w+\.\w+`).MatchString(candidate) {
+		return true
+	}
 
 	// Check if this is an environment variable NAME (not value) in an assignment
 	// Patterns like: env = VARNAME, value or export VARNAME=value
