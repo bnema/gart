@@ -12,21 +12,21 @@ type SecurityConfig struct {
 	Interactive     bool             `toml:"interactive"`
 
 	// Pattern exclusion configuration
-	PatternConfig PatternConfig `toml:"pattern_config"`
+	PatternConfig PatternConfig `toml:"pattern_config,omitempty"`
 
 	// Content scanning configuration
-	ContentScan ContentScanConfig `toml:"content_scan"`
+	ContentScan ContentScanConfig `toml:"content_scan,omitempty"`
 
 	// Allowlist configuration
-	Allowlist AllowlistConfig `toml:"allowlist"`
+	Allowlist AllowlistConfig `toml:"allowlist,omitempty"`
 }
 
 type PatternConfig struct {
-	Critical []string `toml:"critical"`
-	High     []string `toml:"high"`
-	Medium   []string `toml:"medium"`
-	Low      []string `toml:"low"`
-	Custom   []string `toml:"custom"`
+	Critical []string `toml:"critical,omitempty"`
+	High     []string `toml:"high,omitempty"`
+	Medium   []string `toml:"medium,omitempty"`
+	Low      []string `toml:"low,omitempty"`
+	Custom   []string `toml:"custom,omitempty"`
 }
 
 type ContentScanConfig struct {
@@ -38,8 +38,8 @@ type ContentScanConfig struct {
 }
 
 type AllowlistConfig struct {
-	Patterns []string `toml:"patterns"`
-	Files    []string `toml:"files"`
+	Patterns []string `toml:"patterns,omitempty"`
+	Files    []string `toml:"files,omitempty"`
 }
 
 // DefaultSecurityConfig returns a security configuration with sensible defaults
@@ -52,37 +52,12 @@ func DefaultSecurityConfig() *SecurityConfig {
 		FailOnSecrets:   true,
 		Interactive:     true,
 
-		PatternConfig: PatternConfig{
-			Critical: []string{},
-			High:     []string{},
-			Medium:   []string{},
-			Low:      []string{},
-			Custom:   []string{},
-		},
-
 		ContentScan: ContentScanConfig{
 			EntropyThreshold: MediumEntropyThreshold,
 			MinSecretLength:  20,
 			MaxFileSize:      10 * 1024 * 1024, // 10MB
 			ScanBinaryFiles:  false,
 			ContextWindow:    50,
-		},
-
-		Allowlist: AllowlistConfig{
-			Patterns: []string{
-				"EXAMPLE_*", "DEMO_*", "TEST_*", 
-				"LOCAL_*",           // Local env vars
-				"function(*)",       // Function definitions
-				"*/plugin-name",     // Plugin patterns
-				"https://github.com/*", // Public GitHub URLs
-				"*/.git/*",          // Git internals
-			},
-			Files: []string{
-				".git/*",            // All git files
-				"*.test.js",         // Test files
-				"*.spec.js",
-				"*_test.go",
-			},
 		},
 	}
 }
