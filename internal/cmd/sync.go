@@ -28,12 +28,14 @@ func getSyncCmd() *cobra.Command {
 }
 
 func syncAllDotfiles(skipSecurity bool) {
+	skipAllSecurity := false // Track skip all flag across iterations
+	
 	for name, path := range appInstance.Config.Dotfiles {
 		appInstance.Dotfile.Name = name
 		appInstance.Dotfile.Path = path
 		// Get ignores for this dotfile
 		ignores := appInstance.Config.DotfilesIgnores[name]
-		if !ui.RunSyncView(appInstance, ignores, skipSecurity) {
+		if !ui.RunSyncView(appInstance, ignores, skipSecurity, &skipAllSecurity) {
 			// User aborted sync, stop processing remaining dotfiles
 			break
 		}
@@ -50,5 +52,6 @@ func syncSingleDotfile(name string, skipSecurity bool) {
 	appInstance.Dotfile.Path = path
 	// Get ignores for this dotfile
 	ignores := appInstance.Config.DotfilesIgnores[name]
-	ui.RunSyncView(appInstance, ignores, skipSecurity)
+	// For single dotfile, pass nil for skipAllSecurity since there's no batch
+	ui.RunSyncView(appInstance, ignores, skipSecurity, nil)
 }
