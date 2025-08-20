@@ -184,27 +184,37 @@ commit_message_format = "{{ .Action }} {{ .Dotfile }}"
 
 ### Security Configuration
 
-Gart includes comprehensive security scanning to detect sensitive information in dotfiles before adding them. The security features are enabled by default but can be customized or disabled entirely.
+Gart includes comprehensive security scanning to detect sensitive information in dotfiles before adding them. Security is enabled by default with minimal configuration.
 
+**Basic Security Configuration (auto-generated):**
 ```toml
 [settings.security]
-enabled = true              # Enable/disable security scanning entirely
+enabled = true              # Enable/disable security scanning entirely  
 scan_content = true         # Enable/disable content scanning for secrets
 exclude_patterns = true     # Enable/disable pattern-based exclusions
 sensitivity = "medium"      # Sensitivity level: "low", "medium", "high", "paranoid"
 fail_on_secrets = true      # Fail when secrets are found (vs warning only)
 interactive = true          # Show interactive prompts for security findings
+```
 
+**Advanced Configuration (optional - add only when needed):**
+```toml
+# Content scanning parameters - customizable but good defaults exist
 [settings.security.content_scan]
 entropy_threshold = 4.5     # Minimum entropy for secret detection
 min_secret_length = 20      # Minimum length for potential secrets
-max_file_size = 5242880     # Maximum file size to scan (5MB)
+max_file_size = 10485760    # Maximum file size to scan (10MB)
 scan_binary_files = false   # Whether to scan binary files
 context_window = 50         # Lines of context around findings
 
+# Allowlist - skip scanning for known safe patterns/files
 [settings.security.allowlist]
-patterns = ["TEST_*", "DEMO_*"]  # Allowed secret patterns
-files = ["test.env", "demo.config"]  # Files to skip scanning
+patterns = ["EXAMPLE_*", "DEMO_*", "TEST_*"]  # Allowed secret patterns
+files = ["*.test.js", "*_test.go"]            # Files to skip scanning
+
+# Custom pattern exclusions - rarely needed
+[settings.security.pattern_config]
+custom = ["my_custom_pattern"]  # Your own exclusion patterns
 ```
 
 **What the security scanner does:**
@@ -213,6 +223,11 @@ files = ["test.env", "demo.config"]  # Files to skip scanning
 - Avoids flagging normal config text, UI descriptions, and documentation
 - Shows you what it found and lets you decide what to do
 - Groups findings by how serious they are (Critical/High/Medium/Low)
+
+**Important notes:**
+- `enabled = false` disables all security features
+- `scan_content = false` disables secret detection (main feature) but keeps file exclusions
+- Both `enabled` and `scan_content` must be `true` for secret scanning to work
 
 **To completely disable security scanning:**
 ```toml
