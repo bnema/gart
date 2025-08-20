@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/go-git/go-billy/v5"
 	"github.com/go-git/go-billy/v5/memfs"
@@ -117,6 +118,7 @@ func (r *MemoryRepository) Commit(message string) error {
 		Author: &object.Signature{
 			Name:  "Gart Test",
 			Email: "test@localhost",
+			When:  time.Now(),
 		},
 	})
 	if err != nil {
