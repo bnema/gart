@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 type RiskLevel int
@@ -134,6 +135,22 @@ func (s *Scanner) ScanFile(path string, content []byte) (*ScanResult, error) {
 		return result, nil
 	}
 
+	// Adjust sensitivity based on file type
+	ext := strings.ToLower(filepath.Ext(path))
+	originalSensitivity := s.config.Sensitivity
+	
+	switch ext {
+	case ".lua", ".vim", ".py", ".js", ".go", ".rs", ".java", ".c", ".cpp":
+		// Code files - reduce sensitivity
+		s.contentDetector.SetSensitivity(SensitivityLow)
+	case ".md", ".txt", ".rst":
+		// Documentation - very low sensitivity  
+		s.contentDetector.SetSensitivity(SensitivityLow)
+	case ".env", ".key", ".pem", ".crt":
+		// Sensitive files - increase sensitivity
+		s.contentDetector.SetSensitivity(SensitivityHigh)
+	}
+
 	// First check if file should be excluded by pattern
 	if s.config.ExcludePatterns {
 		shouldExclude, risk, reason := s.patternMatcher.ShouldExclude(path)
@@ -176,6 +193,9 @@ func (s *Scanner) ScanFile(path string, content []byte) (*ScanResult, error) {
 		result.Passed = result.Risk < RiskLevelHigh || (result.Risk == RiskLevelHigh && !s.config.FailOnSecrets)
 	}
 
+	// Restore original sensitivity
+	s.contentDetector.SetSensitivity(originalSensitivity)
+
 	return result, nil
 }
 
@@ -196,7 +216,11 @@ func (s *Scanner) ScanDirectory(path string, ignores []string) (*ScanReport, err
 
 		// Skip directories
 		if info.IsDir() {
-			// Check if directory should be ignored
+			// Always skip .git and .github directories
+			if info.Name() == ".git" || info.Name() == ".github" {
+				return filepath.SkipDir
+			}
+			// Check if directory should be ignored by patterns
 			for _, ignore := range ignores {
 				if matched, _ := filepath.Match(ignore, info.Name()); matched {
 					return filepath.SkipDir

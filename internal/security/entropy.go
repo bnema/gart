@@ -2,6 +2,7 @@ package security
 
 import (
 	"math"
+	"regexp"
 	"strings"
 	"unicode"
 )
@@ -125,6 +126,18 @@ type EntropyAnalysis struct {
 }
 
 func (ea *EntropyAnalyzer) calculateConfidence(s string, entropy float64) float64 {
+	// Early exit for structural patterns
+	if isStructured, conf := ea.analyzeStructuralPattern(s); isStructured {
+		return conf // Very low confidence for UI/command patterns
+	}
+	
+	// Check natural language before entropy
+	nlScore := ea.calculateNaturalLanguageScore(s)
+	if nlScore > 0.6 {
+		// High natural language content caps confidence
+		return math.Min(0.3, entropy / 10.0)
+	}
+
 	// Start with entropy-based confidence
 	var baseConfidence float64
 	if entropy >= HighEntropyThreshold {
@@ -143,6 +156,11 @@ func (ea *EntropyAnalyzer) calculateConfidence(s string, entropy float64) float6
 	compositionScore := ea.analyzeCharacterComposition(s)
 	lengthScore := ea.analyzeLengthPattern(s)
 	patternScore := ea.filterCommonPatterns(s)
+
+	// Natural language heavily reduces confidence
+	if nlScore > 0.3 {
+		patternScore *= (1.0 - nlScore*0.5)
+	}
 
 	// Calculate weighted average with pattern score having veto power
 	// If pattern score is very low (< 0.3), it's likely a placeholder
@@ -266,10 +284,123 @@ func (ea *EntropyAnalyzer) analyzeLengthPattern(s string) float64 {
 	}
 }
 
+// analyzeStructuralPattern detects UI text, commands, and other structured patterns
+func (ea *EntropyAnalyzer) analyzeStructuralPattern(s string) (isStructured bool, confidence float64) {
+	// UI Mnemonic pattern: [X] or [X]text where X is 1-2 chars
+	uiMnemonicPattern := regexp.MustCompile(`^\[[A-Za-z ]{1,2}\]`)
+	if uiMnemonicPattern.MatchString(s) {
+		// Extract text after bracket
+		afterBracket := uiMnemonicPattern.ReplaceAllString(s, "")
+		// If remaining text is mostly alphabetic with spaces, it's UI text
+		alphaSpaceCount := 0
+		for _, r := range afterBracket {
+			if unicode.IsLetter(r) || unicode.IsSpace(r) {
+				alphaSpaceCount++
+			}
+		}
+		if len(afterBracket) > 0 && float64(alphaSpaceCount)/float64(len(afterBracket)) > 0.8 {
+			return true, 0.1
+		}
+	}
+	
+	// Vim command pattern: :CommandName<Key>
+	vimCmdPattern := regexp.MustCompile(`^:[A-Za-z][A-Za-z0-9]*(<[A-Z]+>)?$`)
+	if vimCmdPattern.MatchString(s) {
+		return true, 0.1
+	}
+	
+	// Checkbox pattern: [ ] text or [x] text
+	checkboxPattern := regexp.MustCompile(`^\[[x \-]\]\s+.+`)
+	if checkboxPattern.MatchString(s) {
+		return true, 0.1
+	}
+	
+	return false, 1.0
+}
+
+// calculateNaturalLanguageScore determines how much of the string is natural language
+func (ea *EntropyAnalyzer) calculateNaturalLanguageScore(s string) float64 {
+	words := strings.Fields(s)
+	if len(words) == 0 {
+		return 0.0
+	}
+	
+	naturalWordCount := 0
+	commonWords := map[string]bool{
+		"the": true, "and": true, "for": true, "with": true, "from": true,
+		"find": true, "search": true, "file": true, "buffer": true, "existing": true,
+		"toggle": true, "tree": true, "nvim": true, "vim": true, "goto": true,
+		"help": true, "tags": true, "recent": true, "files": true, "current": true,
+		"document": true, "symbols": true, "references": true, "definition": true,
+		"implementation": true, "type": true, "workspace": true, "dynamic": true,
+	}
+	
+	for _, word := range words {
+		cleanWord := strings.Trim(strings.ToLower(word), "[]()<>:;,.")
+		if len(cleanWord) >= 2 && (commonWords[cleanWord] || ea.isCommonEnglishWord(cleanWord)) {
+			naturalWordCount++
+		}
+	}
+	
+	return float64(naturalWordCount) / float64(len(words))
+}
+
+// isCommonEnglishWord checks if a word is likely common English
+func (ea *EntropyAnalyzer) isCommonEnglishWord(word string) bool {
+	// Check if word is mostly alphabetic
+	alphaCount := 0
+	for _, r := range word {
+		if unicode.IsLetter(r) {
+			alphaCount++
+		}
+	}
+	// Word should be 2+ chars, mostly letters, and not look like hex/base64
+	return len(word) >= 2 && 
+		   float64(alphaCount)/float64(len(word)) > 0.8 &&
+		   !regexp.MustCompile(`^[a-f0-9]+$`).MatchString(word)
+}
+
 func (ea *EntropyAnalyzer) filterCommonPatterns(s string) float64 {
 	lower := strings.ToLower(s)
+	
+	// Check structural patterns first (highest priority)
+	if isStructured, conf := ea.analyzeStructuralPattern(s); isStructured {
+		return conf
+	}
+	
+	// Check natural language score
+	nlScore := ea.calculateNaturalLanguageScore(s)
+	if nlScore > 0.6 {
+		// Mostly natural language, very unlikely to be a secret
+		return 0.2
+	}
 
-	// Check for known secret prefixes first (these are likely real secrets)
+	// Check for GitHub/package patterns
+	if matched := regexp.MustCompile(`^[a-zA-Z0-9_-]+/[a-zA-Z0-9_.-]+$`).MatchString(s); matched {
+		return 0.2 // Very low confidence for package names
+	}
+
+	// Check URLs - separate domain from path
+	if strings.HasPrefix(lower, "http://") || strings.HasPrefix(lower, "https://") {
+		// Parse URL to check if it contains credentials
+		if regexp.MustCompile(`https?://[^:]+:[^@]+@`).MatchString(lower) {
+			return 1.0 // URL with credentials, likely secret
+		}
+		// Check for API endpoints that are just base URLs
+		if regexp.MustCompile(`^https?://[a-z0-9.-]+\.(com|org|net|io)/?$`).MatchString(lower) {
+			return 0.1 // Just a domain, not a secret
+		}
+		// Check for known public APIs
+		publicAPIs := []string{"github.com", "gitlab.com", "npmjs.org", "pypi.org", 
+							   "api.anthropic.com", "api.openai.com", "googleapis.com"}
+		for _, api := range publicAPIs {
+			if strings.Contains(lower, api) {
+				return 0.15 // Known public API endpoint
+			}
+		}
+	}
+
+	// Check for known secret prefixes (these are likely real secrets)
 	secretPrefixes := []string{
 		"sk-", "pk-", "api-", "key-", "tok-", "akia", "eyj", // Common API key/token prefixes
 		"sk-ant-api03-", // Anthropic keys
@@ -281,35 +412,38 @@ func (ea *EntropyAnalyzer) filterCommonPatterns(s string) float64 {
 		}
 	}
 
-	// Check for common configuration patterns that should not be flagged
-	commonConfigPatterns := []string{
-		// Package/namespace identifiers
-		"com.", "org.", "net.", "io.", "co.", "de.", "fr.", "uk.",
-		// System paths
-		"/usr/", "/var/", "/etc/", "/home/", "/opt/", "/tmp/", "/bin/", "/sbin/",
-		"/.config/", "/.local/", "/.cache/", "~/.config/", "~/.local/",
-		"c:\\", "program files", "appdata", "documents",
-		// Color and theme related
-		"color", "rgb", "rgba", "hex", "#", "bold", "italic", "underline", "normal",
-		"bright", "dim", "foreground", "background", "fg", "bg",
-		// Shell/terminal patterns
-		"bash", "zsh", "fish", "sh", "cmd", "powershell", "terminal",
-		"console", "completion", "function", "alias", "export",
-		// File extensions
-		".fish", ".sh", ".py", ".js", ".json", ".xml", ".yaml", ".toml",
-		// Common words that shouldn't be secrets
-		"settings", "config", "options", "preferences", "profile",
-		"theme", "layout", "display", "format", "style", "appearance",
-		"favorites", "bookmarks", "history", "recent", "cache",
-		"server", "client", "host", "port", "address", "connection",
-		"substitution", "environment", "downloading", "available",
-		// Unix socket paths
-		"unix:", ".sock",
-	}
+	// Enhanced config pattern detection with word boundaries
+	// Only flag if it's NOT a natural language context
+	if nlScore < 0.4 {
+		commonConfigPatterns := []string{
+			// Package/namespace identifiers
+			"com.", "org.", "net.", "io.", "co.", "de.", "fr.", "uk.",
+			// System paths
+			"/usr/", "/var/", "/etc/", "/home/", "/opt/", "/tmp/", "/bin/", "/sbin/",
+			"/.config/", "/.local/", "/.cache/", "~/.config/", "~/.local/",
+			"c:\\", "program files", "appdata", "documents",
+			// Color and theme related
+			"color", "rgb", "rgba", "hex", "#", "bold", "italic", "underline", "normal",
+			"bright", "dim", "foreground", "background", "fg", "bg",
+			// Shell/terminal patterns
+			"bash", "zsh", "fish", "sh", "cmd", "powershell", "terminal",
+			"console", "completion", "function", "alias", "export",
+			// File extensions
+			".fish", ".sh", ".py", ".js", ".json", ".xml", ".yaml", ".toml",
+			// Common words that shouldn't be secrets
+			"settings", "config", "options", "preferences", "profile",
+			"theme", "layout", "display", "format", "style", "appearance",
+			"favorites", "bookmarks", "history", "recent", "cache",
+			"server", "client", "host", "port", "address", "connection",
+			"substitution", "environment", "downloading", "available",
+			// Unix socket paths
+			"unix:", ".sock",
+		}
 
-	for _, pattern := range commonConfigPatterns {
-		if strings.Contains(lower, pattern) {
-			return 0.3 // Low confidence for config patterns
+		for _, pattern := range commonConfigPatterns {
+			if strings.Contains(lower, pattern) {
+				return 0.3 // Low confidence for config patterns
+			}
 		}
 	}
 
