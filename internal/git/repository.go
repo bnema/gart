@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
@@ -159,6 +160,7 @@ func (r *Repository) Commit(message string) error {
 		Author: &object.Signature{
 			Name:  "Gart",
 			Email: "gart@localhost",
+			When:  time.Now(),
 		},
 	})
 	if err != nil {
