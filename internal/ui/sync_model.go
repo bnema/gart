@@ -11,7 +11,8 @@ import (
 )
 
 // RunSyncView runs the sync view and returns whether to continue with additional syncs
-func RunSyncView(app *app.App, ignores []string, skipSecurity bool) bool {
+// skipAllSecurity pointer allows the function to set the flag if user chooses "skip all"
+func RunSyncView(app *app.App, ignores []string, skipSecurity bool, skipAllSecurity *bool) bool {
 	sourcePath := app.Dotfile.Path
 
 	// Check if the source is a file or directory
@@ -31,8 +32,15 @@ func RunSyncView(app *app.App, ignores []string, skipSecurity bool) bool {
 		storePath = filepath.Join(app.StoragePath, app.Dotfile.Name+ext)
 	}
 
-	// Run security scan before checking for changes (unless skipped)
-	if !skipSecurity {
+	// Check skip all flag
+	if skipAllSecurity != nil && *skipAllSecurity {
+		skipSecurity = true
+	}
+
+	// Check if security should run (not disabled by flag OR config)
+	shouldRunSecurity := !skipSecurity && app.Config.Settings.Security != nil && app.Config.Settings.Security.Enabled
+
+	if shouldRunSecurity {
 		securityContext := security.NewSecurityContext(app.Config.Settings.Security)
 
 		fmt.Printf("%s\n", scanningStyle.Render(fmt.Sprintf(" Running security scan for '%s'...", app.Dotfile.Name)))
@@ -47,25 +55,24 @@ func RunSyncView(app *app.App, ignores []string, skipSecurity bool) bool {
 			// Display the security report using UI styling
 			DisplaySecurityReport(securityReport)
 
-			proceed, err := securityContext.InteractivePrompt(securityReport)
+			proceed, skipAll, err := securityContext.InteractivePrompt(securityReport)
 			if err != nil {
 				fmt.Printf("Error handling security prompt: %v\n", err)
 				return false
+			}
+
+			// Set skipAll flag if user chose "skip all"
+			if skipAll && skipAllSecurity != nil {
+				*skipAllSecurity = true
 			}
 
 			if !proceed {
 				fmt.Printf("Sync aborted due to security concerns.\n")
 				return false
 			}
-
-			// Add security-based ignores
-			securityIgnores := securityContext.GetSecurityIgnores(securityReport)
-			ignores = append(ignores, securityIgnores...)
 		} else {
 			fmt.Printf("%s\n", securityPassStyle.Render("󰸞 Security scan passed - no issues found."))
 		}
-	} else {
-		fmt.Printf("%s\n", scanningStyle.Render("Security scan skipped"))
 	}
 
 	// In reverse sync mode, check that store file exists before doing diff

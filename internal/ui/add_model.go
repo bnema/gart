@@ -30,7 +30,7 @@ func RunAddDotfileView(app *app.App, path string, dotfileName string, ignores []
 	if report.TotalFindings > 0 {
 		DisplaySecurityFindings(report)
 
-		proceed, err := securityCtx.InteractivePrompt(report)
+		proceed, _, err := securityCtx.InteractivePrompt(report)
 		if err != nil {
 			fmt.Println(errorStyle.Render("Error!"))
 			fmt.Println("Security check failed:", err)
@@ -41,9 +41,8 @@ func RunAddDotfileView(app *app.App, path string, dotfileName string, ignores []
 			return
 		}
 
-		// Get additional ignores based on security findings
-		securityIgnores := securityCtx.GetSecurityIgnores(report)
-		ignores = append(ignores, securityIgnores...)
+		// Note: For add command, we don't use skipAll flag since it's a single operation
+		// Security findings don't affect permanent configuration
 	}
 
 	var addErr error

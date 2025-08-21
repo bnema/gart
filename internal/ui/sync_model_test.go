@@ -238,7 +238,7 @@ func TestRunSyncView_ReverseSyncMode(t *testing.T) {
 			}
 
 			// Capture output to verify status messages
-			result := RunSyncView(testApp, []string{}, tt.skipSecurity)
+			result := RunSyncView(testApp, []string{}, tt.skipSecurity, nil)
 
 			// Check result matches expectation
 			if result != tt.wantResult {
@@ -342,7 +342,7 @@ func TestRunSyncView_StatusMessages(t *testing.T) {
 			// Note: This is a simplified test - in a real scenario, you'd want to capture
 			// the actual output and verify it contains the expected message.
 			// For now, we just verify the function runs without error
-			result := RunSyncView(testApp, []string{}, true)
+			result := RunSyncView(testApp, []string{}, true, nil)
 			if !result {
 				t.Errorf("RunSyncView() should have succeeded but returned false")
 			}
@@ -437,7 +437,7 @@ func TestRunSyncView_NoChanges(t *testing.T) {
 			}
 
 			// Run sync - should return true but not make any changes
-			result := RunSyncView(testApp, []string{}, true)
+			result := RunSyncView(testApp, []string{}, true, nil)
 			if !result {
 				t.Errorf("RunSyncView() should have succeeded but returned false")
 			}
@@ -579,7 +579,7 @@ func TestRunSyncView_SingleFileReverseSyncMode(t *testing.T) {
 			}
 
 			// Run sync
-			result := RunSyncView(testApp, []string{}, tt.skipSecurity)
+			result := RunSyncView(testApp, []string{}, tt.skipSecurity, nil)
 
 			// Check result matches expectation
 			if result != tt.wantResult {
@@ -596,6 +596,207 @@ func TestRunSyncView_SingleFileReverseSyncMode(t *testing.T) {
 					t.Errorf("Check function validation failed: %s", tt.description)
 				}
 			}
+		})
+	}
+}
+
+func TestRunSyncView_SkipAllFunctionality(t *testing.T) {
+	// Test that skipAll flag properly propagates across multiple dotfile syncs
+	tempDir := t.TempDir()
+	sourceDir := filepath.Join(tempDir, "source")
+	storeDir := filepath.Join(tempDir, "store")
+	
+	if err := os.MkdirAll(sourceDir, 0755); err != nil {
+		t.Fatalf("Failed to create source directory: %v", err)
+	}
+	if err := os.MkdirAll(storeDir, 0755); err != nil {
+		t.Fatalf("Failed to create store directory: %v", err)
+	}
+	
+	// Create test file
+	if err := os.WriteFile(filepath.Join(sourceDir, "config.lua"), []byte("test content"), 0644); err != nil {
+		t.Fatalf("Failed to create test file: %v", err)
+	}
+	
+	// Create test app with security enabled
+	testApp := &app.App{
+		ConfigFilePath: filepath.Join(tempDir, "config.toml"),
+		StoragePath:    storeDir,
+		Dotfile: app.Dotfile{
+			Name: "test-dotfile",
+			Path: sourceDir,
+		},
+		Config: &config.Config{
+			Settings: config.SettingsConfig{
+				StoragePath:     storeDir,
+				GitVersioning:   false,
+				ReverseSyncMode: false,
+				Security: &security.SecurityConfig{
+					Enabled:     true,
+					Interactive: true,
+				},
+			},
+			Dotfiles:        map[string]string{"test-dotfile": sourceDir},
+			DotfilesIgnores: map[string][]string{},
+		},
+	}
+	
+	tests := []struct {
+		name           string
+		initialSkipAll bool
+		expectedSkipAll bool
+		description    string
+	}{
+		{
+			name:            "Initial skipAll false, should remain false",
+			initialSkipAll:  false,
+			expectedSkipAll: false,
+			description:     "When no security issues are found, skipAll should remain false",
+		},
+		{
+			name:            "Initial skipAll true, should remain true",
+			initialSkipAll:  true,
+			expectedSkipAll: true,
+			description:     "When skipAll is already set, should bypass security entirely",
+		},
+	}
+	
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Clean test directories
+			if err := os.RemoveAll(storeDir); err != nil {
+				t.Fatalf("Failed to clean store directory: %v", err)
+			}
+			if err := os.MkdirAll(storeDir, 0755); err != nil {
+				t.Fatalf("Failed to recreate store directory: %v", err)
+			}
+			
+			// Set up initial skipAll flag
+			skipAllFlag := tt.initialSkipAll
+			
+			// Run sync with skipAll pointer
+			result := RunSyncView(testApp, []string{}, false, &skipAllFlag)
+			
+			// Should succeed
+			if !result {
+				t.Errorf("RunSyncView() should have succeeded but returned false")
+			}
+			
+			// Check that skipAll flag matches expectation
+			if skipAllFlag != tt.expectedSkipAll {
+				t.Errorf("skipAll flag = %v, want %v", skipAllFlag, tt.expectedSkipAll)
+			}
+		})
+	}
+}
+
+func TestRunSyncView_SecurityMessages(t *testing.T) {
+	// Test that security messages are only shown when security is enabled
+	tempDir := t.TempDir()
+	sourceDir := filepath.Join(tempDir, "source")
+	storeDir := filepath.Join(tempDir, "store")
+	
+	if err := os.MkdirAll(sourceDir, 0755); err != nil {
+		t.Fatalf("Failed to create source directory: %v", err)
+	}
+	if err := os.MkdirAll(storeDir, 0755); err != nil {
+		t.Fatalf("Failed to create store directory: %v", err)
+	}
+
+	tests := []struct {
+		name             string
+		securityEnabled  bool
+		skipSecurity     bool
+		shouldShowMessages bool
+		description      string
+	}{
+		{
+			name:             "Security enabled in config, no skip flag",
+			securityEnabled:  true,
+			skipSecurity:     false,
+			shouldShowMessages: true,
+			description:      "Should show security messages when security is enabled and not skipped",
+		},
+		{
+			name:             "Security disabled in config, no skip flag",
+			securityEnabled:  false,
+			skipSecurity:     false,
+			shouldShowMessages: false,
+			description:      "Should NOT show security messages when security is disabled in config",
+		},
+		{
+			name:             "Security enabled in config, but skip flag used",
+			securityEnabled:  true,
+			skipSecurity:     true,
+			shouldShowMessages: false,
+			description:      "Should NOT show security messages when skip flag is used",
+		},
+		{
+			name:             "Security disabled in config and skip flag used",
+			securityEnabled:  false,
+			skipSecurity:     true,
+			shouldShowMessages: false,
+			description:      "Should NOT show security messages when both config disabled and skip flag used",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Clean directories
+			for _, dir := range []string{sourceDir, storeDir} {
+				if err := os.RemoveAll(dir); err != nil {
+					t.Fatalf("Failed to remove directory: %v", err)
+				}
+				if err := os.MkdirAll(dir, 0755); err != nil {
+					t.Fatalf("Failed to create directory: %v", err)
+				}
+			}
+
+			// Create a file that will cause changes (to trigger sync)
+			if err := os.WriteFile(filepath.Join(sourceDir, "test.conf"), []byte("test content"), 0644); err != nil {
+				t.Fatalf("Failed to create test file: %v", err)
+			}
+
+			// Create app instance with specific security configuration
+			testApp := &app.App{
+				Dotfile: app.Dotfile{
+					Name: "test-dotfile",
+					Path: sourceDir,
+				},
+				StoragePath: storeDir,
+				Config: &config.Config{
+					Settings: config.SettingsConfig{
+						ReverseSyncMode: false,
+						GitVersioning:   false,
+						Security: &security.SecurityConfig{
+							Enabled: tt.securityEnabled,
+						},
+					},
+				},
+			}
+
+			// For this test, we would ideally capture stdout/stderr to verify
+			// the presence or absence of security messages.
+			// For now, we verify that the function behavior is correct
+			// Pass nil for skipAllSecurity since this is testing single operations
+			result := RunSyncView(testApp, []string{}, tt.skipSecurity, nil)
+			
+			// The function should always succeed in this test case
+			if !result {
+				t.Errorf("RunSyncView() should have succeeded but returned false")
+			}
+
+			// Verify the sync actually happened (file was copied to store)
+			expectedStoreFile := filepath.Join(storeDir, "test-dotfile", "test.conf")
+			if _, err := os.Stat(expectedStoreFile); os.IsNotExist(err) {
+				t.Errorf("Store file should have been created but doesn't exist: %s", expectedStoreFile)
+			}
+
+			// Note: In a more comprehensive test, we would capture the actual output
+			// and verify that security messages are present or absent based on
+			// tt.shouldShowMessages. This could be done by redirecting stdout/stderr
+			// or by modifying the function to return additional information about
+			// what messages were displayed.
 		})
 	}
 }

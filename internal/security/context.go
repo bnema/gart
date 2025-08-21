@@ -101,25 +101,26 @@ func (sc *SecurityContext) ShouldProceed(report *ScanReport) (bool, string) {
 }
 
 // InteractivePrompt presents security findings to the user and gets their decision
-func (sc *SecurityContext) InteractivePrompt(report *ScanReport) (bool, error) {
+// Returns: proceed (continue with this dotfile), skipAll (skip security for remaining dotfiles), error
+func (sc *SecurityContext) InteractivePrompt(report *ScanReport) (bool, bool, error) {
 	if !sc.config.Interactive || report.TotalFindings == 0 {
 		proceed, msg := sc.ShouldProceed(report)
 		if !proceed {
-			return false, fmt.Errorf("%s", msg)
+			return false, false, fmt.Errorf("%s", msg)
 		}
-		return true, nil
+		return true, false, nil
 	}
 
 	// Get user decision (display will be handled by UI layer)
 	return sc.getUserDecision(report)
 }
 
-func (sc *SecurityContext) getUserDecision(report *ScanReport) (bool, error) {
+func (sc *SecurityContext) getUserDecision(report *ScanReport) (bool, bool, error) {
 	reader := bufio.NewReader(os.Stdin)
 
 	for {
 		fmt.Print("\nOptions:\n")
-		fmt.Printf("  [%s]kip all sensitive files\n", skipChoiceStyle.Render("s"))
+		fmt.Printf("  [%s]kip all (bypass security for all remaining dotfiles)\n", skipChoiceStyle.Render("s"))
 		fmt.Printf("  [%s]roceed anyway (not recommended)\n", proceedChoiceStyle.Render("p"))
 		fmt.Printf("  [%s]bort sync\n", abortChoiceStyle.Render("a"))
 		fmt.Printf("  [%s]eview each file\n", reviewChoiceStyle.Render("r"))
@@ -127,51 +128,30 @@ func (sc *SecurityContext) getUserDecision(report *ScanReport) (bool, error) {
 
 		input, err := reader.ReadString('\n')
 		if err != nil {
-			return false, fmt.Errorf("error reading input: %w", err)
+			return false, false, fmt.Errorf("error reading input: %w", err)
 		}
 
 		choice := strings.ToLower(strings.TrimSpace(input))
 
 		switch choice {
 		case "s", "skip":
-			fmt.Println("Skipping files with security issues...")
-			return sc.handleSkipFiles(report)
+			fmt.Println("Skipping security prompts for all remaining dotfiles...")
+			return true, true, nil
 		case "p", "proceed":
 			fmt.Println(" Proceeding with sync despite security issues...")
-			return true, nil
+			return true, false, nil
 		case "a", "abort":
 			fmt.Println("Aborting sync.")
-			return false, nil
+			return false, false, nil
 		case "r", "review":
-			return sc.reviewEachFile(report)
+			proceed, err := sc.reviewEachFile(report)
+			return proceed, false, err
 		default:
 			fmt.Printf("Invalid choice '%s'. Please try again.\n", choice)
 		}
 	}
 }
 
-func (sc *SecurityContext) handleSkipFiles(report *ScanReport) (bool, error) {
-	// Add files with security issues to ignore list
-	var filesToSkip []string
-
-	for _, result := range report.Results {
-		if len(result.Findings) > 0 {
-			filesToSkip = append(filesToSkip, result.FilePath)
-		}
-	}
-
-	if len(filesToSkip) > 0 {
-		fmt.Printf("The following %d files will be skipped during sync:\n", len(filesToSkip))
-		for _, file := range filesToSkip {
-			fmt.Printf("  - %s\n", file)
-		}
-	} else {
-		fmt.Println("No files need to be skipped.")
-	}
-
-	// For now, we'll proceed but the scanner will exclude problematic files
-	return true, nil
-}
 
 func (sc *SecurityContext) reviewEachFile(report *ScanReport) (bool, error) {
 	reader := bufio.NewReader(os.Stdin)
@@ -220,20 +200,3 @@ func (sc *SecurityContext) reviewEachFile(report *ScanReport) (bool, error) {
 	return true, nil
 }
 
-// GetSecurityIgnores returns additional ignore patterns based on security findings
-func (sc *SecurityContext) GetSecurityIgnores(report *ScanReport) []string {
-	var ignores []string
-
-	if !sc.config.Enabled {
-		return ignores
-	}
-
-	// Add files with critical or high-risk findings to ignore list
-	for _, result := range report.Results {
-		if result.Risk >= RiskLevelHigh {
-			ignores = append(ignores, result.FilePath)
-		}
-	}
-
-	return ignores
-}
