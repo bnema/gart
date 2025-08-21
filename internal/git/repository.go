@@ -219,7 +219,7 @@ func (r *Repository) PushContext(ctx context.Context) error {
 		auth, err = r.getAuthMethod(remoteConfig.URLs[0])
 		if err != nil {
 			// Log the auth error but continue without auth (might work for public repos)
-			// TODO: Add proper logging
+			fmt.Printf("Warning: Git authentication failed, continuing without auth: %v\n", err)
 		}
 	}
 
